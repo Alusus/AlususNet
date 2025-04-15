@@ -1,0 +1,78 @@
+import "Srl/Net.alusus";
+import "Srl/Console.alusus";
+import "Srl/System.alusus";
+import "Srl/Fs.alusus";
+import "Spp";
+import "Build";
+import "Apm";
+Apm.importFile("Alusus/ExtendedNet");
+Apm.importFile("Alusus/Json");
+Apm.importFile("Alusus/Crypto");
+Apm.importFile("Alusus/I18n");
+Apm.importFile("Alusus/ProgArg");
+import "AlususNetPublisher";
+@merge module AlususNet {
+    use Srl;
+    use Core.Basic;
+    def i18nOut: I18n.Dictionary;
+    def i18nIn: I18n.Dictionary;
+    def alususNetPath: String = getThisSourceDirectory[];
+    func initializeTranslations {
+        def poContent: Srl.String;
+        poContent = Fs.readFile(AlususNet.alususNetPath + "/I18n/" + Process.language + "_out.po");
+        if poContent != "" AlususNet.i18nOut.add(poContent);
+        poContent = Fs.readFile(AlususNet.alususNetPath + "/I18n/" + Process.language + "_in.po");
+        if poContent != "" AlususNet.i18nIn.add(poContent);
+        poContent = Fs.readFile(AlususNet.alususNetPath + "/I18n/" + Process.language + "_args_out.po");
+        if poContent != "" ProgArg.i18nOut.add(poContent);
+        poContent = Fs.readFile(AlususNet.alususNetPath + "/I18n/" + Process.language + "_args_in.po");
+        if poContent != "" ProgArg.i18nIn.add(poContent);
+    }
+
+    macro handleUnexpectedCommunicationError {
+        Console.print(i18nOut("Unexpected communication error! Retry? "));
+        if getUserYesNoAnswer(String()) != "yes" {
+            System.exit(1);
+        }
+    }
+
+    func getUserYesNoAnswer(prompt: String): String {
+        return getUserMultipleOptionsAnswer(prompt, Map[String, String]()
+            .set(String("yes"), String("yes"))
+            .set(String("y"), String("yes"))
+            .set(String("no"), String("no"))
+            .set(String("n"), String("no"))
+        );
+    }
+
+    func getUserMultipleOptionsAnswer(prompt: String, options: Map[String, String]): String {
+        def ret: String;
+        while 1 {
+            if prompt != "" Console.print(prompt);
+            def answer: array[Char, 100];
+            Console.getString(answer~ptr, 100);
+            ret = i18nIn(answer~ptr).toLowerCase();
+            if options.findPos(ret) == -1 {
+                Console.print(i18nOut("Invalid entry.\n"));
+                continue;
+            }
+            ret = options(ret);
+            break;
+        }
+        return ret;
+    }
+
+    func getUserTextAnswer(prompt: String, allowEmpty: Bool): String {
+        def result: String;
+        while 1 {
+            if prompt != "" Console.print(prompt);
+            def answer: array[Char, 1024];
+            Console.getString(answer~ptr, 1024);
+            result = String(answer~ptr).trim();
+            if result != "" or allowEmpty break;
+            Console.print(i18nOut("Invalid entry.\n"));
+        }
+        return result;
+    }
+}
+AlususNet.initializeTranslations();
