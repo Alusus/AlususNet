@@ -176,3 +176,6 @@ msgstr "`بداية_آنية` و بداية_مبنية` يجب أن تُوفرا
 
 msgid "`initializer` should not be provided when startJit and startExe are provided in the config."
 msgstr "`مهيئ` يجب أن لا تُوفر عند توفير `بداية_آنية` و `بداية_مبنية` في الإعدادات."
+
+msgid "\nPlease enter the project name and the backup path"
+msgstr "ارجو ادخال اسم المشروع و مسار ملف  النسخة الاحطياطية"

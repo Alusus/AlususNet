@@ -26,9 +26,18 @@
         def userName: String;
         def trustedTokenPath: String;
         def invalidCodeCounter: Int = 3;
+        def verbose : bool = true;
+        def myWorkDir : String;
 
         handler this~init(projName: String) {
             this.publishProjectName = projName;
+            def fp: ptr[Fs.File] = Fs.openProcess("pwd", "r");
+            def path: array[char, 1035];
+            Fs.readLine(path~ptr, 1035, fp);
+            Fs.closeProcess(fp);
+            this.myWorkDir = String(path~ptr);
+            // Remove the \n from the end of the string.
+            this.myWorkDir = this.myWorkDir.slice(0, this.myWorkDir.getLength() - 1);
         }
 
         handler this_type(): SrdRef[AlususNetPublisher] {
@@ -44,7 +53,7 @@
         }
 
         handler this.publish(serverPort : int) {
-            this.settingsFilePath = myWorkDir + String("/.deploy.settings");
+            this.settingsFilePath = this.myWorkDir + String("/.deploy.settings");
             def homeDir: String = System.getEnv("HOME");
             this.trustedTokenPath = homeDir + String("/.alnashir.token");
             if checkProjectName(this.projectName) {
@@ -61,12 +70,14 @@
         }
 
         handler this.restoreDbBackup(restore_db_path : String) {
+            def homeDir: String = System.getEnv("HOME");
             this.trustedTokenPath = homeDir + String("/.alnashir.token");
             this.fetchUploadToken();
             this.uploadBackup(restore_db_path);
         }
 
         handler this.downloadDbBackup(backup_db_path : String) {
+            def homeDir: String = System.getEnv("HOME");
             this.trustedTokenPath = homeDir + String("/.alnashir.token");
             this.fetchUploadToken();
             this.downloadBackup(backup_db_path);
@@ -81,7 +92,7 @@
         handler this.fetchProducts() {
             while 1 {
                 def request: Net.Request(String.format("%s%s", host.buf, GET_PRODUCTS));
-                request.verbose = verbose;
+                request.verbose = this.verbose;
                 request.get();
                 if request.responseHttpStatus == 200 {
                     this.products = request.responseBody;
@@ -120,7 +131,11 @@
                 Console.print(i18nOut("Enter mfaCode or enter back to logIn agin: \n>"));
                 Console.getString(mfaCode~ptr, 100);
             }
-
+            if Fs.exists(this.settingsFilePath) {
+                def data: String = Fs.readFile(this.settingsFilePath);
+                this.uploadKey = Json(data)("uploadKey");
+                this.authKey = Json(data)("authKey");
+            } else {
             if Fs.exists(this.trustedTokenPath) {
                 def data: String = Fs.readFile(this.trustedTokenPath);
                 this.userName = Json(data)("userName");
@@ -145,7 +160,7 @@
                     );
                 }
                 def request: Net.Request(host + CREATE_AUTH_TOKEN);
-                request.verbose = verbose;
+                request.verbose = this.verbose;
                 request.post(requestString);
                 if request.responseHttpStatus == 200 {
                     this.authKey = Json(request.responseBody)("authToken");
@@ -155,7 +170,7 @@
                     while 1 {
                         if i18nIn(mfaCode~ptr) == "back"break;
                         def verifyMfaCodeRequest: Net.Request(host + CREATE_AUTH_TOKEN_MFA);
-                        verifyMfaCodeRequest.verbose = verbose;
+                        verifyMfaCodeRequest.verbose = this.verbose;
                         verifyMfaCodeRequest.post(String.format(
                             "{\"username\": \"%s\" , \"password\": \"%s\" , \"code\": \"%s\"}",
                             Json.escape(String(userName~ptr).trim()).buf,
@@ -202,17 +217,24 @@
                 this.trustKey.buf, this.userName.buf
             );
             Fs.createFile(this.trustedTokenPath, data, data.getLength());
-        }
+
+            data = String.format(
+                "{\"authKey\": \"%s\"}",
+                this.authKey.buf
+            );
+            Fs.createFile(this.settingsFilePath, data, data.getLength());
+        }}
 
         handler this.fetchUploadToken() {
             if Fs.exists(this.settingsFilePath) {
                 def data: String = Fs.readFile(this.settingsFilePath);
                 this.uploadKey = Json(data)("uploadKey");
+                this.authKey = Json(data)("authKey");
             } else {
-                if this.authKey == ""this.fetchAuthToken();
+                if this.authKey == "" this.fetchAuthToken();
                 while 1 {
                     def request: Net.Request(host + CREATE_UPLOAD_TOKEN_PATH);
-                    request.verbose = verbose;
+                    request.verbose = this.verbose;
                     request.authType = "Bearer";
                     request.authKey = this.authKey;
                     request.post(String.format(
@@ -221,11 +243,13 @@
                     ));
                     if request.responseHttpStatus == 201 {
                         this.uploadKey = Json(request.responseBody)("token");
-                        def data: String = String.format("{\"uploadKey\": \"%s\"}", this.uploadKey.buf);
+                        def data: String = String.format("{\"uploadKey\": \"%s\" , \"authKey\" : \"%s\"}", this.uploadKey.buf, this.authKey.buf);
                         Fs.createFile(this.settingsFilePath, data, data.getLength());
                         break;
                     } else if request.responseHttpStatus == 401 {
                         Console.print(i18nOut("Authentication error.\n"));
+                        def data: String = String.format("{}");
+                        Fs.createFile(this.settingsFilePath, data, data.getLength());
                         this.fetchAuthToken();
                     } else {
                         handleUnexpectedCommunicationError[];
@@ -242,7 +266,7 @@
                 def request: Net.Request(String.format(
                     "%s%s?project=%s", host.buf, GET_PROJECT_STATUS_PATH, Net.uriEncode(this.projectName).buf
                 ));
-                request.verbose = verbose;
+                request.verbose = this.verbose;
                 request.authType = "Bearer";
                 request.authKey = this.uploadKey;
                 request.get();
@@ -359,7 +383,7 @@
                     Net.uriEncode(productId).buf,
                     Net.uriEncode(promotionCode).buf
                 ));
-                request.verbose = verbose;
+                request.verbose = this.verbose;
                 request.authType = "Bearer";
                 request.authKey = this.uploadKey;
                 request.post("");
@@ -408,7 +432,7 @@
             System.exec(order);
             def tarFilename: String;
             tarFilename = this.projectName + String(".tar.gz");
-            order = String("tar cvzf  \"") + tarFilename + "\"  -C \"" + myWorkDir + "/" + this.projectName + "\" .";
+            order = String("tar cvzf  \"") + tarFilename + "\"  -C \"" + this.myWorkDir + "/" + this.projectName + "\" .";
             System.exec(order);
             def buffer: UnqRef[array[Char, BATCH_SIZE]];
             buffer.construct();
@@ -431,7 +455,7 @@
                         "%s%s?project=%s&port=%i", host.buf, UPLOAD_PROJECT_PATH,
                         Net.uriEncode(this.projectName).buf, serverPort
                     ));
-                    request.verbose = verbose;
+                    request.verbose = this.verbose;
                     request.authKey = this.uploadKey;
                     request.authType = "Bearer";
                     request.contentType = "application/octet-stream";
@@ -492,7 +516,7 @@
                         "%s%s?project=%s", host.buf, UPLOAD_BACKUP_PATH,
                         Net.uriEncode(this.projectName).buf
                     ));
-                    request.verbose = verbose;
+                    request.verbose = this.verbose;
                     request.authKey = this.uploadKey;
                     request.authType = "Bearer";
                     request.contentType = "application/octet-stream";
@@ -534,15 +558,17 @@
         }
 
         handler this.createBackup(): String {
-            def downloadUrl: String = "";
+            def downloadUrl: String = "http://localhost:8400//api/backup/download?name=database_sleman2-MyProject3_2025-4-30_4:0&token=da3ad7969c00e9a3940fd51f0228a508";
+            if downloadUrl =="" {
+            if this.authKey == "" this.fetchAuthToken();
             while 1 {
                 def request: Net.Request(String.format(
                     "%s%s?project=%s&backup_type=database", host.buf, CREATE_BACKUP_PATH,
                     Net.uriEncode(this.projectName).buf
                 ));
-                request.verbose = verbose;
+                request.verbose = this.verbose;
                 request.authType = "Bearer";
-                request.authKey = this.uploadKey;
+                request.authKey = this.authKey;
                 request.contentType = "application/json";
                 request.post(String("{}"));
                 if request.responseHttpStatus == 200 {
@@ -550,7 +576,7 @@
                     return downloadUrl;
                 } else if request.responseHttpStatus == 401 {
                     handle401Error[];
-                } else if request.responseHttpStatus == 400 {
+                } else if request.responseHttpStatus == 404 {
                     Console.print(i18nOut("project not found\n"));
                     break;
                 } else if request.responseHttpStatus == 423 {
@@ -563,6 +589,7 @@
                 } else {
                     handleUnexpectedCommunicationError[];
                 }
+            }
             }
             return downloadUrl;
         }
