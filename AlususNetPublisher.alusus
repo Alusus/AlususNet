@@ -11,7 +11,7 @@
         def CREATE_AUTH_TOKEN: "/api/login";
         def BATCH_SIZE: 102400;
         // 100 KB
-        def HOST: "http://localhost:8400";
+        def HOST: "https://alusus.net";
         @shared def host: String(CharsPtr().{
             this = System.getEnv("NASHIR_HOST");
             if this == 0 this = HOST;
