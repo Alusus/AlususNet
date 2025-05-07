@@ -1,3 +1,4 @@
+#!/usr/bin/env alusus
 import "Srl/Net.alusus";
 import "Srl/Console.alusus";
 import "Srl/System.alusus";
@@ -77,6 +78,7 @@ import "AlususNetPublisher";
 }
 
 AlususNet.initializeTranslations();
+
 ProgArg.initialize();
 ProgArg.cmdDef = ProgArg.CmdDef().{
     use Srl;
@@ -91,27 +93,47 @@ ProgArg.cmdDef = ProgArg.CmdDef().{
         ProgArg.CmdDef().{
             kwd = "restore-db";
             description = "restore database to the container";
+            args = Map[String, String]()
+                .set(String("projectName"), String("arg1.\n This is the name of the project you want to restore the database to"))
+                .set(String("backupPath"), String("arg2.\nThis is the backup path for the file you want to upload"))
+                .set(String("apiToken"), String("arg3 (optional).\nThis is your api token to connect with your project"));
+            numRequiredArgs = 2;
             callback = closure (options: Map[String, String], args: Array[String]) {
                 if (args.getLength() < 2) {
                     Console.print(AlususNet.i18nOut("Please enter the project name and the backup path"));
-                } else {
+                } else if (args.getLength() < 3) {
                     def alususNet: SrdRef[AlususNet.AlususNetPublisher] = AlususNet.AlususNetPublisher(args(0));
+                    alususNet.restoreDbBackup(args(1));
+                } else {
+                    def alususNet: SrdRef[AlususNet.AlususNetPublisher] = AlususNet.AlususNetPublisher(args(0),args(3));
                     alususNet.restoreDbBackup(args(1));
                 }
             }
         },
+
         ProgArg.CmdDef().{
             kwd = "backup-db";
             description = "backup database from the container";
+            args = Map[String, String]()
+                .set(String("projectName"), String("arg1.\n This is the name of the project you want to restore the database to"))
+                .set(String("backupPath"), String("arg2.\nThis is the backup path for where you want to save the file"))
+                .set(String("apiToken"), String("arg3 (optional).\nThis is your api token to connect with your project"));
+            numRequiredArgs = 2;
             callback = closure (options: Map[String, String], args: Array[String]) {
+            def i : int =0;
+            for  i=0 , i< args.getLength() , i++
+                Console.print("  args[%i]   %s  \n",i,args(i).buf);
                 if (args.getLength() < 2) {
-                    Console.print(AlususNet.i18nOut("\nPlease enter the project name and the backup path"));
-                } else {
+                    Console.print(AlususNet.i18nOut("Please enter the project name and the backup path"));
+                } else if (args.getLength() < 3) {
                     def alususNet: SrdRef[AlususNet.AlususNetPublisher] = AlususNet.AlususNetPublisher(args(0));
+                    alususNet.downloadDbBackup(args(1));
+                } else {
+                    def alususNet: SrdRef[AlususNet.AlususNetPublisher] = AlususNet.AlususNetPublisher(args(0),args(3));
                     alususNet.downloadDbBackup(args(1));
                 }
             }
-        };
+        },
     });
 };
 ProgArg.parse(2);

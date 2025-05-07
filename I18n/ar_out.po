@@ -179,3 +179,14 @@ msgstr "`مهيئ` يجب أن لا تُوفر عند توفير `بداية_آ�
 
 msgid "\nPlease enter the project name and the backup path"
 msgstr "ارجو ادخال اسم المشروع و مسار ملف  النسخة الاحطياطية"
+
+msgid "Before proceeding, please read and agree to the following:\n\n"
+"Terms of Service: https://alusus.net/terms-of-service\n"
+"Privacy Policy: https://alusus.net/privacy-policy\n"
+"By using Alusus Net, you agree to the above terms of service and privacy policy.\n\n"
+"Do you accept these terms? [Y/n]"
+msgstr "قبل المتابعة، يرجى قراءة والموافقة على ما يلي:\n\n"
+"شروط الخدمة: https://alusus.net/terms-of-service\n"
+"سياسة الخصوصية: https://alusus.net/privacy-policy\n"
+"باستخدام خدمة الأسس نت فإنك توافق على شروط الخدمة وسياسة الخصوصية.\n\n"
+"هل توافق على هذه الشروط؟"
