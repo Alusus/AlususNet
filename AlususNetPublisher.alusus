@@ -1,7 +1,7 @@
 @merge module AlususNet {
     class AlususNetPublisher {
         def GET_PRODUCTS: "/api/products";
-        def CREATE_API_TOKEN_PATH: "/api/user/api-token";
+        def CREATE_API_TOKEN_PATH: "/api/token";
         def GET_PROJECT_STATUS_PATH: "/api/project/setup-status";
         def SETUP_PROJECT_PATH: "/api/project/setup";
         def UPLOAD_PROJECT_PATH: "/api/project/upload";
@@ -9,6 +9,7 @@
         def CREATE_BACKUP_PATH: "/api/project/backup";
         def CREATE_AUTH_TOKEN_MFA: "/api/user/verify-mfa";
         def CREATE_AUTH_TOKEN: "/api/login";
+        def CHECK_BACKUP_STATUS: "/api/project/backup/status";
         def BATCH_SIZE: 102400;
         // 100 KB
         def HOST: "https://alusus.net";
@@ -29,9 +30,11 @@
         def verbose: bool = true;
         def termOfUseAccepted: Bool = false;
         def myWorkDir: String;
+        def password: String;
 
-        handler this~init(projName: String, apiKey: String) {
+        handler this~init(projName: String, apiKey: String, verbose: bool) {
             this.publishProjectName = projName;
+            this.verbose = verbose;
             def fp: ptr[Fs.File] = Fs.openProcess("pwd", "r");
             def path: array[char, 1035];
             Fs.readLine(path~ptr, 1035, fp);
@@ -43,15 +46,19 @@
         }
 
         handler this_type(): SrdRef[AlususNetPublisher] {
-            return SrdRef[AlususNetPublisher]().{ alloc()~init(String(""), String("")) };
+            return SrdRef[AlususNetPublisher]().{ alloc()~init(String(""), String(""), false) };
         }
 
         handler this_type(projName: String): SrdRef[AlususNetPublisher] {
-            return SrdRef[AlususNetPublisher]().{ alloc()~init(projName, String("")) };
+            return SrdRef[AlususNetPublisher]().{ alloc()~init(projName, String(""), false) };
         }
 
         handler this_type(projName: String, apiKey: String): SrdRef[AlususNetPublisher] {
-            return SrdRef[AlususNetPublisher]().{ alloc()~init(projName, apiKey) };
+            return SrdRef[AlususNetPublisher]().{ alloc()~init(projName, apiKey, false) };
+        }
+
+        handler this_type(projName: String, apiKey: String, verbose: bool): SrdRef[AlususNetPublisher] {
+            return SrdRef[AlususNetPublisher]().{ alloc()~init(projName, apiKey, verbose) };
         }
 
         handler this.projectName: String {
@@ -74,13 +81,17 @@
         }
 
         handler this.publish(serverPort: int) {
+            this.publish(serverPort, String(""));
+        }
+
+        handler this.publish(serverPort: int, projectPath : String) {
             this.settingsFilePath = this.myWorkDir + String("/.deploy.settings");
             this.trustedTokenPath = this.myWorkDir + String("/.alnashir.token");
             if checkProjectName(this.projectName) {
                 this.fetchProducts();
                 this.fetchApiToken();
                 this.setupProject();
-                this.uploadProject(serverPort);
+                this.uploadProject(serverPort,projectPath);
             } else {
                 Console.print(i18nOut(
                     "Invalid project name. It should only contain lowercase letters, numbers, "
@@ -96,7 +107,7 @@
         }
 
         handler this.downloadDbBackup(backup_db_path: String) {
-            this.trustedTokenPath =String("/.alnashir.token");
+            this.trustedTokenPath = String("/.alnashir.token");
             this.fetchApiToken();
             this.downloadBackup(backup_db_path);
         }
@@ -182,8 +193,10 @@
                     request.post(requestString);
                     if request.responseHttpStatus == 200 {
                         this.authKey = Json(request.responseBody)("authToken");
+                        this.password = String(password~ptr);
                         break;
                     } else if request.responseHttpStatus == 202 {
+                        this.password = String(password~ptr);
                         promptForMfaCode[];
                         while 1 {
                             if i18nIn(mfaCode~ptr) == "back"break;
@@ -242,7 +255,7 @@
             if this.apiKey.trim() == "" {
                 if Fs.exists(this.settingsFilePath) {
                     def data: String = Fs.readFile(this.settingsFilePath);
-                    this.apiKey = Json(data)("apiKey");
+                    this.apiKey = Json(data)("token");
                 } else {
                     if this.authKey == ""this.fetchAuthToken();
                     while 1 {
@@ -251,10 +264,11 @@
                         request.authType = "Bearer";
                         request.authKey = this.authKey;
                         request.post(String.format(
-                            "{\"name\": \"%s\"}",
-                            Json.escape(this.projectName).buf
+                            "{\"name\": \"%s\" , \"password\" : \"%s\"}",
+                            Json.escape(this.projectName).buf,
+                            Json.escape(this.password).buf
                         ));
-                        if request.responseHttpStatus == 200 {
+                        if request.responseHttpStatus == 201 {
                             this.apiKey = Json(request.responseBody)("token");
                             def data: String = String.format("{\"apiKey\": \"%s\"}", this.apiKey.buf);
                             Fs.createFile(this.settingsFilePath, data, data.getLength());
@@ -442,15 +456,18 @@
             }
         }
 
-        handler this.uploadProject(serverPort: int) {
-            def order: String = String("rm -rf \"") + this.projectName + "\"";
-            System.exec(order);
-            order = String("mv Build \"") + this.projectName + "\"";
-            System.exec(order);
-            def tarFilename: String;
-            tarFilename = this.projectName + String(".tar.gz");
-            order = String("tar cvzf  \"") + tarFilename + "\"  -C \"" + this.myWorkDir + "/" + this.projectName + "\" .";
-            System.exec(order);
+        handler this.uploadProject(serverPort: int, tarFilename: String) {
+            def alususProject: bool = false;
+            if tarFilename == String("") {
+                alususProject = true;
+                def order: String = String("rm -rf \"") + this.projectName + "\"";
+                System.exec(order);
+                order = String("mv Build \"") + this.projectName + "\"";
+                System.exec(order);
+                tarFilename = this.projectName + String(".tar.gz");
+                order = String("tar cvzf  \"") + tarFilename + "\"  -C \"" + this.myWorkDir + "/" + this.projectName + "\" .";
+                System.exec(order);
+            }
             def buffer: UnqRef[array[Char, BATCH_SIZE]];
             buffer.construct();
             while 1 {
@@ -507,7 +524,7 @@
                 Console.print("\n");
                 break;
             }
-            Fs.remove(tarFilename);
+            if alususProject Fs.remove(tarFilename);
             Console.print(i18nOut("Deployment successful.\n"));
         }
 
@@ -565,52 +582,97 @@
 
         handler this.downloadBackup(filePath: String) {
             def downloadUrl: String = this.createBackup();
-            while 1 {
-                if Net.get(downloadUrl.buf, filePath.buf) == false {
-                    handleUnexpectedCommunicationError[];
-                } else {
-                    break;
+            if downloadUrl != String("") {
+                while 1 {
+                    if Net.get(downloadUrl.buf, filePath.buf) == false {
+                        handleUnexpectedCommunicationError[];
+                    } else {
+                        break;
+                    }
                 }
             }
         }
 
         handler this.createBackup(): String {
-            def downloadUrl: String = "http://localhost:8400//api/backup/download?name=database_sleman2-MyProject3_2025-4-30_4:0&token=da3ad7969c00e9a3940fd51f0228a508";
-            if downloadUrl == "" {
-                if this.apiKey == ""this.fetchApiToken();
-                while 1 {
-                    def request: Net.Request(String.format(
-                        "%s%s?project=%s&backup_type=database", host.buf, CREATE_BACKUP_PATH,
-                        Net.uriEncode(this.projectName).buf
+            def downloadUrl: String = "";
+            def backupName: String = "";
+            if this.apiKey == ""this.fetchApiToken();
+            while 1 {
+                def request: Net.Request(String.format(
+                    "%s%s?project=%s&backup_type=database", host.buf, CREATE_BACKUP_PATH,
+                    Net.uriEncode(this.projectName).buf
+                ));
+                request.verbose = this.verbose;
+                request.authType = "Bearer";
+                request.authKey = this.apiKey;
+                request.contentType = "application/json";
+                request.post(String("{}"));
+                if request.responseHttpStatus == 200 {
+                    downloadUrl = Json(request.responseBody)("downloadUrl");
+                    backupName = Json(request.responseBody)("backupName");
+                    break;
+                } else if request.responseHttpStatus == 401 {
+                    handle401Error[];
+                } else if request.responseHttpStatus == 404 {
+                    Console.print(i18nOut("project not found\n"));
+                    break;
+                } else if request.responseHttpStatus == 423 {
+                    Console.print(i18nOut(
+                        "Some operation is currently in progress on this project's container. Retry (yes/no)? "
                     ));
-                    request.verbose = this.verbose;
-                    request.authType = "Bearer";
-                    request.authKey = this.apiKey;
-                    request.contentType = "application/json";
-                    request.post(String("{}"));
-                    if request.responseHttpStatus == 200 {
-                        downloadUrl = Json(request.responseBody)("downloadUrl");
-                        return downloadUrl;
-                    } else if request.responseHttpStatus == 401 {
-                        handle401Error[];
-                    } else if request.responseHttpStatus == 404 {
-                        Console.print(i18nOut("project not found\n"));
-                        break;
-                    } else if request.responseHttpStatus == 423 {
-                        Console.print(i18nOut(
-                            "Some operation is currently in progress on this project's container. Retry (yes/no)? "
-                        ));
-                        if getUserYesNoAnswer(String()) != "yes" {
-                            System.exit(1);
-                        }
-                    } else {
-                        handleUnexpectedCommunicationError[];
+                    if getUserYesNoAnswer(String()) != "yes" {
+                        System.exit(1);
                     }
+                } else {
+                    handleUnexpectedCommunicationError[];
                 }
             }
-            return downloadUrl;
+            if this.isBackupReady(backupName) return downloadUrl;
+
+            return String("");
         }
 
+        handler this.isBackupReady(backupName: String): bool {
+            if this.apiKey == ""this.fetchApiToken();
+            while 1 {
+                def request: Net.Request(String.format(
+                    "%s%s?project=%s&backup=%s", host.buf, CHECK_BACKUP_STATUS,
+                    Net.uriEncode(this.projectName).buf,
+                    Net.uriEncode(backupName).buf
+                ));
+                request.verbose = this.verbose;
+                request.authType = "Bearer";
+                request.authKey = this.apiKey;
+                request.contentType = "application/json";
+                request.get();
+                if request.responseHttpStatus == 200 {
+                    def status: String = "";
+                    status = Json(request.responseBody)("status");
+                    if status == String("creating") {
+                        Console.print("backup is not created yet!\n");
+                        // here we need to w8 time for example 2 sec and try agin
+                    } else if status == String("creating_failed") {
+                        Console.print("backup creation field\n");
+                        break;
+                    } else return true;
+                } else if request.responseHttpStatus == 401 {
+                    handle401Error[];
+                } else if request.responseHttpStatus == 404 {
+                    Console.print(i18nOut("project not found\n"));
+                    break;
+                } else if request.responseHttpStatus == 402 {
+                    Console.print(i18nOut(
+                        "project backup not found\n"
+                    ));
+                    if getUserYesNoAnswer(String()) != "yes" {
+                        System.exit(1);
+                    }
+                } else {
+                    handleUnexpectedCommunicationError[];
+                }
+            }
+            return false;
+        }
 
         handler this.selectProduct(): String {
             Console.print(i18nOut("Select a plan:\n"));
