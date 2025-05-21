@@ -21,13 +21,11 @@ ProgArg.cmdDef = ProgArg.CmdDef().{
                 .set(String("apiToken"), String("arg3 (optional).\nThis is your api token to connect with your project"));
             numRequiredArgs = 2;
             callback = closure (options: Map[String, String], args: Array[String]) {
-                if (args.getLength() < 2) {
-                    Console.print(AlususNet.i18nOut("Please enter the project name and the backup path"));
-                } else if (args.getLength() < 3) {
+                if (args.getLength() < 3) {
                     def alususNet: SrdRef[AlususNet.AlususNetPublisher] = AlususNet.AlususNetPublisher(args(0));
                     alususNet.restoreDbBackup(args(1));
                 } else {
-                    def alususNet: SrdRef[AlususNet.AlususNetPublisher] = AlususNet.AlususNetPublisher(args(0),args(3));
+                    def alususNet: SrdRef[AlususNet.AlususNetPublisher] = AlususNet.AlususNetPublisher(args(0), args(2));
                     alususNet.restoreDbBackup(args(1));
                 }
             }
@@ -41,16 +39,11 @@ ProgArg.cmdDef = ProgArg.CmdDef().{
                 .set(String("apiToken"), String("arg3 (optional).\nThis is your api token to connect with your project"));
             numRequiredArgs = 2;
             callback = closure (options: Map[String, String], args: Array[String]) {
-            def i : int =0;
-            for  i=0 , i< args.getLength() , i++
-                Console.print("  args[%i]   %s  \n",i,args(i).buf);
-                if (args.getLength() < 2) {
-                    Console.print(AlususNet.i18nOut("Please enter the project name and the backup path"));
-                } else if (args.getLength() < 3) {
+                if (args.getLength() < 3) {
                     def alususNet: SrdRef[AlususNet.AlususNetPublisher] = AlususNet.AlususNetPublisher(args(0));
                     alususNet.downloadDbBackup(args(1));
                 } else {
-                    def alususNet: SrdRef[AlususNet.AlususNetPublisher] = AlususNet.AlususNetPublisher(args(0),args(3));
+                    def alususNet: SrdRef[AlususNet.AlususNetPublisher] = AlususNet.AlususNetPublisher(args(0), args(2));
                     alususNet.downloadDbBackup(args(1));
                 }
             }
@@ -62,15 +55,19 @@ ProgArg.cmdDef = ProgArg.CmdDef().{
                 .set(String("projectName"), String("arg1.\n This is the name of the project you want to restore the database to"))
                 .set(String("projectPath"), String("arg2.\nThis is the project tar.gz path"))
                 .set(String("port"), String("arg3.\nThis is the project port"))
-                .set(String("apiToken"), String("arg4 (optional).\nThis is your api token to connect with your project"));
+                .set(String("starter"), String("arg4 (optional).\nThis is the project starter excutable name"))
+                .set(String("apiToken"), String("arg5 (optional).\nThis is your api token to connect with your project"));
             numRequiredArgs = 3;
             callback = closure (options: Map[String, String], args: Array[String]) {
                 if (args.getLength() < 4) {
                     def alususNet: SrdRef[AlususNet.AlususNetPublisher] = AlususNet.AlususNetPublisher(args(0));
-                    alususNet.publish(String.parseInt(args(2)),args(1));
+                    alususNet.publish(String.parseInt(args(2)), args(1), String(""));
+                } else if (args.getLength() == 4) {
+                    def alususNet: SrdRef[AlususNet.AlususNetPublisher] = AlususNet.AlususNetPublisher(args(0));
+                    alususNet.publish(String.parseInt(args(2)), args(1), args(3));
                 } else {
-                    def alususNet: SrdRef[AlususNet.AlususNetPublisher] = AlususNet.AlususNetPublisher(args(0),args(3));
-                    alususNet.publish(String.parseInt(args(2)),args(1));
+                    def alususNet: SrdRef[AlususNet.AlususNetPublisher] = AlususNet.AlususNetPublisher(args(0), args(4));
+                    alususNet.publish(String.parseInt(args(2)), args(1), args(3));
                 }
             }
         }
