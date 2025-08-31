@@ -1,34 +1,37 @@
-#!/usr/bin/env alusus
-import "Srl/Net.alusus";
 import "Srl/Console.alusus";
 import "Srl/System.alusus";
 import "Srl/Fs.alusus";
+import "Srl/Net.alusus";
 import "Spp";
 import "Build";
 import "Apm";
 Apm.importFile("Alusus/ExtendedNet");
 Apm.importFile("Alusus/Json");
-Apm.importFile("Alusus/Crypto");
 Apm.importFile("Alusus/I18n");
-Apm.importFile("Alusus/ProgArg");
-import "AlususNetPublisher";
+import "Client";
+
 @merge module AlususNet {
     use Srl;
     use Core.Basic;
     def i18nOut: I18n.Dictionary;
     def i18nIn: I18n.Dictionary;
+    def localizationPath: preprocess {
+        def dummy: 1;
+        Spp.astMgr.insertAst(
+            ast { "{{name}}/I18n" },
+            Srl.Map[Srl.String, ref[Core.Basic.TiObject]]()
+                .set(Srl.String("name"), Core.Basic.TiStr(Spp.astMgr.getSourceDirectoryForElement(dummy~ast)))
+        );
+    };
+    def textAssets: I18n.TextAssets[localizationPath, "en"];
+
     def alususNetPath: String = getThisSourceDirectory[];
 
-    func initializeTranslations {
-        def poContent: Srl.String;
-        poContent = Fs.readFile(AlususNet.alususNetPath + "/I18n/" + Process.language + "_out.po");
-        if poContent != ""AlususNet.i18nOut.add(poContent);
-        poContent = Fs.readFile(AlususNet.alususNetPath + "/I18n/" + Process.language + "_in.po");
-        if poContent != ""AlususNet.i18nIn.add(poContent);
-        poContent = Fs.readFile(AlususNet.alususNetPath + "/I18n/" + Process.language + "_args_out.po");
-        if poContent != ""ProgArg.i18nOut.add(poContent);
-        poContent = Fs.readFile(AlususNet.alususNetPath + "/I18n/" + Process.language + "_args_in.po");
-        if poContent != ""ProgArg.i18nIn.add(poContent);
+    func initializeTranslations(lang: String) {
+        textAssets.initialize();
+        textAssets.setCurrentLanguage(lang);
+        i18nOut.add(textAssets.current.outputs);
+        i18nIn.add(textAssets.current.inputs);
     }
 
     macro handleUnexpectedCommunicationError {
@@ -77,6 +80,4 @@ import "AlususNetPublisher";
     }
 }
 
-AlususNet.initializeTranslations();
-
-
+AlususNet.initializeTranslations(Srl.String(1, Process.language));

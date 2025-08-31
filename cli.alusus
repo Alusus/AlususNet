@@ -1,0 +1,125 @@
+import "AlususNet";
+Apm.importFile("Alusus/ProgArg");
+Apm.importFile("Alusus/Utilib");
+
+func initializeTranslations(lang: Srl.String) {
+    AlususNet.initializeTranslations(lang);
+    ProgArg.i18nOut.add(AlususNet.textAssets.current.args_outputs);
+    ProgArg.i18nIn.add(AlususNet.textAssets.current.args_inputs);
+}
+
+func initializeProgArg(argStartIndex: Int) {
+    // TODO: Should we pass the language to ProgArg.initialize() instead?
+    ProgArg.initialize();
+    ProgArg.cmdDef = ProgArg.CmdDef().{
+        use Srl;
+        callback = closure (options: Map[String, String], args: Array[String]) {
+            Console.print(ProgArg.i18nOut("AlususNet\nVersion: 1.0\n\n"));
+            ProgArg.printHelp(argStartIndex);
+        }
+
+        subCmds = Array[SrdRef[ProgArg.CmdDef]]({
+            ProgArg.CmdDef().{
+                kwd = "publish";
+                description = "Publish your project to the container.";
+                args = Map[String, String]()
+                    .set(String("projectName"), String("The name of the project on Alusus Net."))
+                    .set(String("projectPath"), String("Path to the project folder."))
+                    .set(String("port"), String("The HTTP port on which the app will be listening."))
+                    .set(String("starter"), String("The name of the executalbe file of the project."))
+                    .set(String("apiToken"), String(
+                        "Alusus Net API token. If this is not provided you'll be prompted for login."
+                    ));
+                numRequiredArgs = 3;
+                callback = closure (options: Map[String, String], args: Array[String]) {
+                    if (args.getLength() < 4) {
+                        def alususNetClient: SrdRef[AlususNet.Client] = AlususNet.Client(args(0));
+                        alususNetClient.publish(String.parseInt(args(2)), args(1), String(""));
+                    } else if (args.getLength() == 4) {
+                        def alususNetClient: SrdRef[AlususNet.Client] = AlususNet.Client(args(0));
+                        alususNetClient.publish(String.parseInt(args(2)), args(1), args(3));
+                    } else {
+                        def alususNetClient: SrdRef[AlususNet.Client] = AlususNet.Client(args(0), args(4));
+                        alususNetClient.publish(String.parseInt(args(2)), args(1), args(3));
+                    }
+                }
+            },
+            ProgArg.CmdDef().{
+                kwd = "backup-db";
+                description = "Backup the database of the container and download the backup.";
+                args = Map[String, String]()
+                    .set(String("projectName"), String("The name of the project on Alusus Net."))
+                    .set(String("backupPath"), String("The path to save the PostgreSQL backup file to."))
+                    .set(String("apiToken"), String(
+                        "Alusus Net API token. If this is not provided you'll be prompted for login."
+                    ));
+                numRequiredArgs = 2;
+                callback = closure (options: Map[String, String], args: Array[String]) {
+                    if (args.getLength() < 3) {
+                        def alususNetClient: SrdRef[AlususNet.Client] = AlususNet.Client(args(0));
+                        alususNetClient.downloadDbBackup(args(1));
+                    } else {
+                        def alususNetClient: SrdRef[AlususNet.Client] = AlususNet.Client(args(0), args(2));
+                        alususNetClient.downloadDbBackup(args(1));
+                    }
+                }
+            },
+            ProgArg.CmdDef().{
+                kwd = "restore-db";
+                description = "Upload and restore a database to the container.";
+                args = Map[String, String]()
+                    .set(String("projectName"), String("The name of the project on Alusus Net."))
+                    .set(String("backupPath"), String("The path to the PostgreSQL backup file to upload."))
+                    .set(String("apiToken"), String(
+                        "Alusus Net API token. If this is not provided you'll be prompted for login."
+                    ));
+                numRequiredArgs = 2;
+                callback = closure (options: Map[String, String], args: Array[String]) {
+                    if (args.getLength() < 3) {
+                        def alususNetClient: SrdRef[AlususNet.Client] = AlususNet.Client(args(0));
+                        alususNetClient.restoreDbBackup(args(1));
+                    } else {
+                        def alususNetClient: SrdRef[AlususNet.Client] = AlususNet.Client(args(0), args(2));
+                        alususNetClient.restoreDbBackup(args(1));
+                    }
+                }
+            }
+        });
+    };
+}
+
+@expname[main]
+function main (argCount: Int, args: ptr[array[ptr[array[Char]]]]): Int {
+    def lang: Srl.String = Utilib.getSystemLanguage();
+    // TODO: Is it acceptable design-wise to set Process variables manually here?
+    Process.args = args;
+    Process.argCount = argCount;
+    Process.language = lang;
+    initializeTranslations(lang);
+    initializeProgArg(1);
+    ProgArg.parse(1);
+    return 0;
+}
+
+initializeTranslations(Srl.String(1, Process.language));
+initializeProgArg(2);
+ProgArg.cmdDef.subCmds.add(ProgArg.CmdDef().{
+    use Srl;
+    kwd = "build-cli";
+    description = "Build an executable copy of this cli tool.";
+    numRequiredArgs = 0;
+    callback = closure (options: Map[String, String], args: Array[String]) {
+        System.exec("mkdir -p Build/");
+        System.exec("rm -rf Build/*");
+        def exe: Build.Exe(main~ast، "./Build/alusus-net");
+        exe.addDependencies(Array[String]().{
+            add(Net.getBuildDependencies());
+        });
+        if exe.generate() {
+            Console.print(ProgArg.i18nOut("Build complete.\n"));
+        } else {
+            System.fail(1، ProgArg.i18nOut("Build failed."));
+        }
+    }
+});
+ProgArg.parse(2);

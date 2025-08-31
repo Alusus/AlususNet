@@ -13,12 +13,6 @@ msgstr "أدخل كلمة السر: \n>"
 msgid "Authentication error. Invalid username or password.\n"
 msgstr "خطأ في المصادقة. اسم المستخدم أو كلمة السر غير صالحة.\n"
 
-msgid "Authentication error. Invalid password.\n"
-msgstr "خطأ في المصادقة. كلمة السر غير صالحة.\n"
-
-msgid "Authentication error. Invalid username.\n"
-msgstr "خطأ في المصادقة. اسم المستخدم غير صالح.\n"
-
 msgid "Authentication error.\n"
 msgstr "خطأ في المصادقة.\n"
 
@@ -80,17 +74,8 @@ msgstr "فشل التحميل. الملف أكبر من الحجم الأقصى!
 msgid "Unexpected error. Try re-starting the deployment.\n"
 msgstr "خطأ غير متوقع. يُرجى إعادة تشغيل عملية النشر.\n"
 
-msgid "Build complete.\n"
-msgstr "اكتمل البناء.\n"
-
-msgid "Program uploaded.\n"
-msgstr "حُمل البرنامج.\n"
-
 msgid "Invalid entry.\n"
 msgstr "مدخلة غير صالحة.\n"
-
-msgid "Build failed."
-msgstr "فشل البناء."
 
 msgid "Failed to fetch product info from AlususNet\n"
 msgstr "فشل جلب بيانات المنتجات من الأسس نت\n"
@@ -106,87 +91,62 @@ msgid "Provided promotion code is invalid. Re-enter prmotion code? "
 msgstr "الرمز الترويجي المدخل غير صالح. أترغب بإدخال رمز جديد؟ "
 "(أدخل `نعم` لإدخال رمز جديد أو `ألغ` للخروج) "
 
-msgid "Publishing failed: Uploading to the server failed."
-msgstr "فشل النشر: فشل التحميل إلى الخادم."
-
-msgid "Publishing failed: Restarting the service failed."
-msgstr "فشل النشر: فشلت إعادة تشغيل الخدمة."
-
-msgid "Service restarted.\n"
-msgstr "أُعيد تشغيل الخدمة.\n"
-
-msgid "Publishing completed successfully.\n"
-msgstr "تم النشر بنجاح.\n"
-
-msgid "Enter SSH username to use for publishing: "
-msgstr "أدخل اسم المستخدم لجلسة SSH المستخدمة للنشر: "
-
-msgid "Enter SSH host to use for publishing: "
-msgstr "أدخل عنوان الخادم لجلسة SSH المستخدمة للنشر: "
-
-msgid "Enter SSH port to use for publishing: "
-msgstr "أدخل منفذ SSH المستخدم للنشر: "
-
-msgid "Invalid port number.\n"
-msgstr "رقم المنفذ غير صالح.\n"
-
-msgid "Enter path on the server where the code will be published: "
-msgstr "أدخل المسار على الخادم حيث سيخزن البرنامج: "
-
-msgid "Enter the name of the systemd service to be restarted after publishing, "
-"or leave this empty to skip service restarting: "
-msgstr "أدخل اسم خدمة systemd التي سيتم إعادة تشغيلها بعد النشر، "
-"أو اترك الحقل فارغًا لتجاوز إعادة تشغيل الخدمة: "
-
 msgid "Uploading: %d%%"
 msgstr "تحميل: %d%%"
 
-msgid "Invalid project name. It should only contain lowercase letters, numbers, hyphens (-), and must not start or end with a hyphen.\n"
-msgstr "اسم المشروع غير صالح. يجب أن يحتوي فقط على أحرف صغيرة، أرقام، وشرطات (-)، ويجب ألا يبدأ أو ينتهي بشرطة.\n"
-
-msgid "Enter mfaCode or enter back to logIn agin: \n>"
-msgstr "أدخل رمز التحقق متعدد العوامل أو ادخل رجوع للعودة الى تسجيل الدخول: \n>"
+msgid "Enter MFA code or enter 'back' to login again: \n>"
+msgstr "أدخل رمز التحقق متعدد العوامل أو أدخل 'رجوع' للعودة الى تسجيل الدخول: \n>"
 
 msgid "The account is locked due to multiple incorrect password attempts. Please try again later.\n"
 msgstr "تم قفل الحساب بسبب محاولات متعددة لإدخال كلمة مرور غير صحيحة. يرجى المحاولة مرة أخرى لاحقًا.\n"
-
-msgid "Entered information is invalid!\n"
-msgstr "المعلومات المدخلة غير صحيحة!\n"
-
-msgid "%s\nVersion: %s\n\n"
-msgstr "%s\nالإصدار: %s\n\n"
-
-msgid "Nashir initialization error."
-msgstr "خطأ في تهيئة الناشر."
-
-msgid "`projectName` is missing in config."
-msgstr "`اسم_المشروع` مفقود في الإعدادات."
-
-msgid "`projectVersion` is missing in config."
-msgstr "`رقم_الإصدار` مفقود في الإعدادات."
-
-msgid "`serverPort` is missing in config."
-msgstr "`منفذ_الخادم` مفقود في الاعدادات."
-
-msgid "`publishDriver` is missing in config."
-msgstr "`مشغل_النشر` مفقود في الإعدادات."
-
-msgid "`startJit` and `startExe` should be either both set or both unset in config."
-msgstr "`بداية_آنية` و بداية_مبنية` يجب أن تُوفرا معًا أو تُهملا معًا في الإعدادات."
-
-msgid "`initializer` should not be provided when startJit and startExe are provided in the config."
-msgstr "`مهيئ` يجب أن لا تُوفر عند توفير `بداية_آنية` و `بداية_مبنية` في الإعدادات."
-
-msgid "\nPlease enter the project name and the backup path"
-msgstr "ارجو ادخال اسم المشروع و مسار ملف  النسخة الاحطياطية"
 
 msgid "Before proceeding, please read and agree to the following:\n\n"
 "Terms of Service: https://alusus.net/terms-of-service\n"
 "Privacy Policy: https://alusus.net/privacy-policy\n"
 "By using Alusus Net, you agree to the above terms of service and privacy policy.\n\n"
-"Do you accept these terms? [Y/n]"
+"Do you accept these terms? [Y/n] "
 msgstr "قبل المتابعة، يرجى قراءة والموافقة على ما يلي:\n\n"
 "شروط الخدمة: https://alusus.net/terms-of-service\n"
 "سياسة الخصوصية: https://alusus.net/privacy-policy\n"
 "باستخدام خدمة الأسس نت فإنك توافق على شروط الخدمة وسياسة الخصوصية.\n\n"
-"هل توافق على هذه الشروط؟"
+"هل توافق على هذه الشروط؟ "
+
+msgid "Invalid project name. It should only contain lowercase letters, numbers, "
+"hyphens (-), and must not start or end with a hyphen.\n"
+msgstr "اسم المشروع غير صالح. يجب أن يحتوي فقط على أحرف إنجليزية صغيرة وأرقام وشرطات (-) ولا يجب أن يبدأ أو ينتهي بشرطة.\n"
+
+msgid "Code is invalid!\n"
+msgstr "الرمز غير صالح!\n"
+
+msgid "Unexpected error. Try re-starting the deployment.\n"
+msgstr "خطأ غير متوقع. جرب إعادة بدء عملية النشر.\n"
+
+msgid "Upload failed. File is too big!\n"
+msgstr "فشل الرفع. الملف كبير جداً!\n"
+
+msgid "Unexpected error. Try re-uploading backup.\n"
+msgstr "خطأ غير متوقع. جرب إعادة رفع النسخة الاحتياطية.\n"
+
+msgid "Unexpected error. Try re-uploading the database.\n"
+msgstr "خطأ غير متوقع. جرب إعادة رفع قاعدة البيانات.\n"
+
+msgid "Database restored successfully.\n"
+msgstr "تم استرجاع قاعدة البيانات بنجاح.\n"
+
+msgid "Database backup downloaded successfully.\n"
+msgstr "تم تحميل نسخة قاعدة البيانات الاحتياطية بنجاح.\n"
+
+msgid "Project not found\n"
+msgstr "المشروع غير موجود\n"
+
+msgid "Backup is not created yet!\n"
+msgstr "النسخة الاحتياطية لم تُنشأ بعد!\n"
+
+msgid "Waiting!\n"
+msgstr "انتظار!\n"
+
+msgid "Backup creation field\n"
+msgstr "فشل إنشاء النسخة الاحتياطية\n"
+
+msgid "Project or project backup not found\n"
+msgstr "المشروع أو النسخة الاحتياطية للمشروع غير موجودة\n"

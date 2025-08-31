@@ -1,5 +1,5 @@
 @merge module AlususNet {
-    class AlususNetPublisher {
+    class Client {
         def GET_PRODUCTS: "/api/products";
         def CREATE_API_TOKEN_PATH: "/api/token";
         def GET_PROJECT_STATUS_PATH: "/api/project/setup-status";
@@ -11,28 +11,28 @@
         def CREATE_AUTH_TOKEN: "/api/login";
         def CHECK_BACKUP_STATUS: "/api/project/backup/status";
         def BATCH_SIZE: 102400;
-        // 100 KB
-        //def HOST: "https://alusus.net";
-        def HOST: "http://localhost:8400";
+        def CONF_FILENAME: "/.alususnet.conf";
+        def HOST: "https://alusus.net";
 
         @shared def host: String(CharsPtr().{
-            this = System.getEnv("NASHIR_HOST");
+            this = System.getEnv("ALUSUS_NET_HOST");
             if this == 0 this = HOST;
         });
 
         def publishProjectName: String;
-        def settingsFilePath: String;
+        def myWorkDir: String;
+        def confFilePath: String;
         def products: Json;
-        def apiKey: String;
+
+        def userName: String;
+        def password: String;
         def authKey: String;
         def trustKey: String;
-        def userName: String;
-        def trustedTokenPath: String;
+        def apiKey: String;
+
+        def termOfUseAccepted: Bool = false;
         def invalidCodeCounter: Int = 3;
         def verbose: bool = true;
-        def termOfUseAccepted: Bool = false;
-        def myWorkDir: String;
-        def password: String;
 
         handler this~init(projName: String, apiKey: String, verbose: bool) {
             this.publishProjectName = projName;
@@ -45,22 +45,23 @@
             this.myWorkDir = String(path~ptr);
             // Remove the \n from the end of the string.
             this.myWorkDir = this.myWorkDir.slice(0, this.myWorkDir.getLength() - 1);
+            this.confFilePath = this.myWorkDir + CONF_FILENAME;
         }
 
-        handler this_type(): SrdRef[AlususNetPublisher] {
-            return SrdRef[AlususNetPublisher]().{ alloc()~init(String(""), String(""), false) };
+        handler this_type(): SrdRef[Client] {
+            return SrdRef[Client]().{ alloc()~init(String(""), String(""), false) };
         }
 
-        handler this_type(projName: String): SrdRef[AlususNetPublisher] {
-            return SrdRef[AlususNetPublisher]().{ alloc()~init(projName, String(""), false) };
+        handler this_type(projName: String): SrdRef[Client] {
+            return SrdRef[Client]().{ alloc()~init(projName, String(""), false) };
         }
 
-        handler this_type(projName: String, myApiKey: String): SrdRef[AlususNetPublisher] {
-            return SrdRef[AlususNetPublisher]().{ alloc()~init(projName, myApiKey, false) };
+        handler this_type(projName: String, myApiKey: String): SrdRef[Client] {
+            return SrdRef[Client]().{ alloc()~init(projName, myApiKey, false) };
         }
 
-        handler this_type(projName: String, apiKey: String, verbose: bool): SrdRef[AlususNetPublisher] {
-            return SrdRef[AlususNetPublisher]().{ alloc()~init(projName, apiKey, verbose) };
+        handler this_type(projName: String, apiKey: String, verbose: bool): SrdRef[Client] {
+            return SrdRef[Client]().{ alloc()~init(projName, apiKey, verbose) };
         }
 
         handler this.projectName: String {
@@ -70,10 +71,10 @@
         handler this.acceptTermOFUse() {
             if getUserYesNoAnswer(i18nOut(
                 "Before proceeding, please read and agree to the following:\n\n"
-                    "Terms of Service: https://alusus.net/terms-of-service\n"
-                    "Privacy Policy: https://alusus.net/privacy-policy\n"
-                    "By using Alusus Net, you agree to the above terms of service and privacy policy.\n\n"
-                    "Do you accept these terms? [Y/n]"
+                "Terms of Service: https://alusus.net/terms-of-service\n"
+                "Privacy Policy: https://alusus.net/privacy-policy\n"
+                "By using Alusus Net, you agree to the above terms of service and privacy policy.\n\n"
+                "Do you accept these terms? [Y/n] "
             )) == "yes" {
                 this.termOfUseAccepted = true;
             } else {
@@ -87,8 +88,6 @@
         }
 
         handler this.publish(serverPort: int, projectPath: String, starter: String) {
-            this.settingsFilePath = this.myWorkDir + String("/.deploy.settings");
-            this.trustedTokenPath = this.myWorkDir + String("/.alnashir.token");
             if checkProjectName(this.projectName) {
                 this.fetchProducts();
                 this.fetchApiToken();
@@ -97,27 +96,25 @@
             } else {
                 Console.print(i18nOut(
                     "Invalid project name. It should only contain lowercase letters, numbers, "
-                        "hyphens (-), and must not start or end with a hyphen.\n"
+                    "hyphens (-), and must not start or end with a hyphen.\n"
                 ));
             }
         }
 
         handler this.restoreDbBackup(restore_db_path: String) {
-            this.trustedTokenPath = String("/.alnashir.token");
             this.fetchApiToken();
             this.uploadBackup(restore_db_path);
         }
 
         handler this.downloadDbBackup(backup_db_path: String) {
-            this.trustedTokenPath = String("/.alnashir.token");
             this.fetchApiToken();
             this.downloadBackup(backup_db_path);
         }
 
         macro handle401Error {
             Console.print(i18nOut("\nExisting auth key is no longer valid. Requesting a new auth key.\n"));
-            Fs.remove(this.settingsFilePath);
-            this.apiKey = "";
+            this.apiKey.clear();
+            this.saveConf();
             this.fetchApiToken();
         }
 
@@ -147,6 +144,29 @@
             return Json();
         }
 
+        handler this.readConf() {
+            if Fs.exists(this.confFilePath) {
+                def data: String = Fs.readFile(this.confFilePath);
+                def json: Json(data);
+                this.userName = json("userName");
+                this.trustKey = json("trustKey");
+                this.apiKey = json("apiKey");
+            } else {
+                this.userName.clear();
+                this.trustKey.clear();
+                this.apiKey.clear();
+            }
+        }
+
+        handler this.saveConf() {
+            def data: StringBuilder[JsonStringBuilderMixin](1024, 1024);
+            data.format(
+                "{\n \"userName\": %js,\n \"trustKey\": %js,\n \"apiKey\": %js\n}",
+                this.userName, this.trustKey, this.apiKey
+            );
+            Fs.createFile(this.confFilePath, data, data.getLength());
+        }
+
         handler this.fetchAuthToken() {
             def userName: array[Char, 100];
             def password: array[Char, 100];
@@ -160,130 +180,112 @@
                 Console.getString(password~ptr, 100);
             }
             macro promptForMfaCode{
-                Console.print(i18nOut("Enter mfaCode or enter back to logIn agin: \n>"));
+                Console.print(i18nOut("Enter MFA code or enter 'back' to login again: \n>"));
                 Console.getString(mfaCode~ptr, 100);
             }
-            if Fs.exists(this.settingsFilePath) {
-                def data: String = Fs.readFile(this.settingsFilePath);
-                this.apiKey = Json(data)("apiKey");
-            } else {
-                if Fs.exists(this.trustedTokenPath) {
-                    def data: String = Fs.readFile(this.trustedTokenPath);
-                    this.userName = Json(data)("userName");
-                    this.trustKey = Json(data)("trustKey");
+            promptForUserName[];
+            promptForPassword[];
+            while 1 {
+                def requestString: String;
+                if this.trustKey != "" and this.userName == userName~ptr {
+                    requestString = String.format(
+                        "{\"username\": \"%s\" , \"password\": \"%s\" ,\"trustToken\": \"%s\"}",
+                        Json.escape(String(userName~ptr).trim()).buf,
+                        Json.escape(String(password~ptr).trim()).buf,
+                        Json.escape(this.trustKey.trim()).buf
+                    );
+                } else {
+                    requestString = String.format(
+                        "{\"username\": \"%s\", \"password\": \"%s\"}",
+                        Json.escape(String(userName~ptr).trim()).buf,
+                        Json.escape(String(password~ptr).trim()).buf,
+                    );
                 }
-                promptForUserName[];
-                promptForPassword[];
-                while 1 {
-                    def requestString: String;
-                    if this.trustKey != ""and this.userName == userName~ptr {
-                        requestString = String.format(
-                            "{\"username\": \"%s\" , \"password\": \"%s\" ,\"trustToken\": \"%s\"}",
+                def request: Net.Request(host + CREATE_AUTH_TOKEN);
+                request.verbose = this.verbose;
+                request.post(requestString);
+                if request.responseHttpStatus == 200 {
+                    this.authKey = Json(request.responseBody)("authToken");
+                    this.password = String(password~ptr);
+                    break;
+                } else if request.responseHttpStatus == 202 {
+                    this.password = String(password~ptr);
+                    promptForMfaCode[];
+                    while 1 {
+                        if i18nIn(mfaCode~ptr) == "back" break;
+                        def verifyMfaCodeRequest: Net.Request(host + CREATE_AUTH_TOKEN_MFA);
+                        verifyMfaCodeRequest.verbose = this.verbose;
+                        verifyMfaCodeRequest.post(String.format(
+                            "{\"username\": \"%s\" , \"password\": \"%s\" , \"code\": \"%s\"}",
                             Json.escape(String(userName~ptr).trim()).buf,
                             Json.escape(String(password~ptr).trim()).buf,
-                            Json.escape(this.trustKey.trim()).buf
-                        );
-                    } else {
-                        requestString = String.format(
-                            "{\"username\": \"%s\", \"password\": \"%s\"}",
-                            Json.escape(String(userName~ptr).trim()).buf,
-                            Json.escape(String(password~ptr).trim()).buf,
-                        );
-                    }
-                    def request: Net.Request(host + CREATE_AUTH_TOKEN);
-                    request.verbose = this.verbose;
-                    request.post(requestString);
-                    if request.responseHttpStatus == 200 {
-                        this.authKey = Json(request.responseBody)("authToken");
-                        this.password = String(password~ptr);
-                        break;
-                    } else if request.responseHttpStatus == 202 {
-                        this.password = String(password~ptr);
-                        promptForMfaCode[];
-                        while 1 {
-                            if i18nIn(mfaCode~ptr) == "back"break;
-                            def verifyMfaCodeRequest: Net.Request(host + CREATE_AUTH_TOKEN_MFA);
-                            verifyMfaCodeRequest.verbose = this.verbose;
-                            verifyMfaCodeRequest.post(String.format(
-                                "{\"username\": \"%s\" , \"password\": \"%s\" , \"code\": \"%s\"}",
-                                Json.escape(String(userName~ptr).trim()).buf,
-                                Json.escape(String(password~ptr).trim()).buf,
-                                Json.escape(String(mfaCode~ptr).trim()).buf
-                            ));
-                            def status: int = verifyMfaCodeRequest.responseHttpStatus;
-                            if status == 200 {
-                                this.trustKey = Json(verifyMfaCodeRequest.responseBody)("trustToken");
-                                this.userName = String(userName~ptr).trim();
-                                this.authKey = Json(verifyMfaCodeRequest.responseBody)("authToken");
-                                break 2;
-                            } else {
-                                if status == 401 {
-                                    Console.print(i18nOut("Code is invalid!\n"));
-                                    if this.invalidCodeCounter > 0 {
-                                        this.invalidCodeCounter--;
-                                        promptForMfaCode[];
-                                    } else {
-                                        break;
-                                    }
+                            Json.escape(String(mfaCode~ptr).trim()).buf
+                        ));
+                        def status: int = verifyMfaCodeRequest.responseHttpStatus;
+                        if status == 200 {
+                            this.trustKey = Json(verifyMfaCodeRequest.responseBody)("trustToken");
+                            this.userName = String(userName~ptr).trim();
+                            this.authKey = Json(verifyMfaCodeRequest.responseBody)("authToken");
+                            break 2;
+                        } else {
+                            if status == 401 {
+                                Console.print(i18nOut("Code is invalid!\n"));
+                                if this.invalidCodeCounter > 0 {
+                                    this.invalidCodeCounter--;
+                                    promptForMfaCode[];
                                 } else {
-                                    handleUnexpectedCommunicationError[];
+                                    break;
                                 }
+                            } else {
+                                handleUnexpectedCommunicationError[];
                             }
                         }
-                        promptForUserName[];
-                        promptForPassword[];
-                    } else if request.responseHttpStatus == 401 {
-                        Console.print(i18nOut("Authentication error. Invalid username or password.\n"));
-                        promptForUserName[];
-                        promptForPassword[];
-                    } else if request.responseHttpStatus == 429 {
-                        Console.print(i18nOut(
-                            "The account is locked due to multiple incorrect password attempts. Please try again later.\n"
-                        ));
-                        System.exit(1);
-                    } else {
-                        handleUnexpectedCommunicationError[];
                     }
+                    promptForUserName[];
+                    promptForPassword[];
+                } else if request.responseHttpStatus == 401 {
+                    Console.print(i18nOut("Authentication error. Invalid username or password.\n"));
+                    promptForUserName[];
+                    promptForPassword[];
+                } else if request.responseHttpStatus == 429 {
+                    Console.print(i18nOut(
+                        "The account is locked due to multiple incorrect password attempts. Please try again later.\n"
+                    ));
+                    System.exit(1);
+                } else {
+                    handleUnexpectedCommunicationError[];
                 }
-                def data: String = String.format(
-                    "{\"trustKey\": \"%s\" , \"userName\": \"%s\"}",
-                    this.trustKey.buf, this.userName.buf
-                );
-                Fs.createFile(this.trustedTokenPath, data, data.getLength());
             }
+            this.saveConf();
         }
 
         handler this.fetchApiToken() {
+            this.readConf();
             if this.apiKey.trim() == "" {
-                if Fs.exists(this.settingsFilePath) {
-                    def data: String = Fs.readFile(this.settingsFilePath);
-                    this.apiKey = Json(data)("apiKey");
-                } else {
-                    if this.authKey == ""this.fetchAuthToken();
-                    while 1 {
-                        def request: Net.Request(host + CREATE_API_TOKEN_PATH);
-                        request.verbose = this.verbose;
-                        request.authType = "Bearer";
-                        request.authKey = this.authKey;
-                        request.post(String.format(
-                            "{\"name\": \"%s\" , \"password\" : \"%s\"}",
-                            Json.escape(this.projectName).buf,
-                            Json.escape(this.password).buf
-                        ));
-                        if request.responseHttpStatus == 201 {
-                            this.apiKey = Json(request.responseBody)("token");
-                            def data: String = String.format("{\"apiKey\": \"%s\"}", this.apiKey.buf);
-                            Fs.createFile(this.settingsFilePath, data, data.getLength());
-                            break;
-                        } else if request.responseHttpStatus == 401 {
-                            Console.print(i18nOut("Authentication error.\n"));
-                            def data: String = String.format("{}");
-                            this.authKey == "";
-                            Fs.createFile(this.settingsFilePath, data, data.getLength());
-                            this.fetchAuthToken();
-                        } else {
-                            handleUnexpectedCommunicationError[];
-                        }
+                this.fetchAuthToken();
+                while 1 {
+                    def request: Net.Request(host + CREATE_API_TOKEN_PATH);
+                    request.verbose = this.verbose;
+                    request.authType = "Bearer";
+                    request.authKey = this.authKey;
+                    request.post(String.format(
+                        "{\"name\": \"%s\" , \"password\" : \"%s\"}",
+                        Json.escape(this.projectName).buf,
+                        Json.escape(this.password).buf
+                    ));
+                    if request.responseHttpStatus == 201 {
+                        this.apiKey = Json(request.responseBody)("token")~cast[String].trim();
+                        this.saveConf();
+                        break;
+                    } else if request.responseHttpStatus == 401 {
+                        Console.print(i18nOut("Authentication error.\n"));
+                        this.userName.clear();
+                        this.trustKey.clear();
+                        this.apiKey.clear();
+                        this.saveConf();
+                        this.fetchAuthToken();
+                    } else {
+                        handleUnexpectedCommunicationError[];
                     }
                 }
             }
@@ -327,15 +329,15 @@
                 if product.getLength() == 0 {
                     System.fail(1, i18nOut(
                         "Existing, but inactive, project with the same name exists. "
-                            "This project is in an invalid state and cannot be re-activated. "
-                            "Contact AlususNet's support to resolve the issue, or change your "
-                            "project's name to create a new project on AlususNet.\n"
+                        "This project is in an invalid state and cannot be re-activated. "
+                        "Contact AlususNet's support to resolve the issue, or change your "
+                        "project's name to create a new project on AlususNet.\n"
                     ));
                 }
                 Console.print(i18nOut(
                     "Existing, but inactive, project with the same name exists. "
-                        "The project will be re-activated and overwritten. "
-                        "A new payment plan will be setup.\n"
+                    "The project will be re-activated and overwritten. "
+                    "A new payment plan will be setup.\n"
                 ));
                 Console.print(i18nOut("Hosting plan:\n"));
                 Console.print(getProductInfoString(product));
@@ -343,7 +345,7 @@
                     def answer: String = getUserMultipleOptionsAnswer(
                         i18nOut(
                             "Continue? (Type `yes` to proceed, `no` to cancel, "
-                                "or `coupon` to enter a promotion code) "
+                            "or `coupon` to enter a promotion code) "
                         ),
                         Map[String, String]()
                             .set(String("yes"), String("yes"))
@@ -367,7 +369,7 @@
                 productId = product("id");
                 Console.print(i18nOut(
                     "No existing project found with the same name. "
-                        "A new project will be created and a payment plan will be setup for it.\n"
+                    "A new project will be created and a payment plan will be setup for it.\n"
                 ));
                 Console.print(i18nOut("Hosting plan:\n"));
                 Console.print(getProductInfoString(product));
@@ -382,8 +384,8 @@
                 if this.products.getLength() > 1 {
                     prompt = i18nOut(
                         "Continue? (Type `yes` to proceed, `no` to cancel, "
-                            "`plan` to change the hosting plan, "
-                            "or `coupon` to enter a promotion code) "
+                        "`plan` to change the hosting plan, "
+                        "or `coupon` to enter a promotion code) "
                     );
                     options
                         .set(String("plan"), String("plan"))
@@ -391,7 +393,7 @@
                 } else {
                     prompt = i18nOut(
                         "Continue? (Type `yes` to proceed, `no` to cancel, "
-                            "or `coupon` to enter a promotion code) "
+                        "or `coupon` to enter a promotion code) "
                     );
                 }
                 while 1 {
@@ -426,7 +428,7 @@
                     Console.print(
                         i18nOut(
                             "Please setup your payment profile by visiting this URL:\n"
-                                "%s\nPress enter when you're done.\n"
+                            "%s\nPress enter when you're done.\n"
                         ),
                         request.responseBody.buf
                     );
@@ -435,7 +437,7 @@
                     def answer: String = getUserMultipleOptionsAnswer(
                         i18nOut(
                             "Provided promotion code is invalid. Re-enter prmotion code? "
-                                "(Type `yes` to enter a new code or `cancel` to quit) "
+                            "(Type `yes` to enter a new code or `cancel` to quit) "
                         ),
                         Map[String, String]()
                             .set(String("yes"), String("yes"))
@@ -459,21 +461,20 @@
         }
 
         handler this.uploadProject(serverPort: int, projectPath: String, starter: String) {
-            if starter == String("") {
-                starter = String("start");
+            // Generate the tar file.
+            def tmpProjectPath: String = String("/tmp/") + projectPath;
+            def tarFilename: String = String("/tmp/") + this.projectName + String(".tar.gz");
+            System.exec(String.format("rm -rf \"%s\"", tmpProjectPath.buf));
+            if System.exec(String.format("cp -r \"%s\" \"%s\"", projectPath.buf, tmpProjectPath.buf)) != 0 {
+                Console.print(i18nOut("Invalid project path.\n"));
+                System.exit(1);
             }
-            def tarFilename: String;
-            if projectPath == String("") {
-                def order: String = String("rm -rf \"") + this.projectName + "\"";
-                System.exec(order);
-                order = String("mv Build \"") + this.projectName + "\"";
-                System.exec(order);
-
-                tarFilename = this.projectName + String(".tar.gz");
-                order = String("tar cvzf  \"") + tarFilename + "\"  -C \"" + this.myWorkDir + "/" + this.projectName + "\" .";
-                System.exec(order);
-            } else {
-                tarFilename = projectPath;
+            if System.exec(String.format(
+                "tar cvzf  \"%s\" -C \"%s\" .",
+                tarFilename.buf, tmpProjectPath.buf
+            )) != 0 {
+                Console.print(i18nOut("Failed to create tar file.\n"));
+                System.exit(1);
             }
 
             def buffer: UnqRef[array[Char, BATCH_SIZE]];
@@ -533,9 +534,8 @@
                 Console.print("\n");
                 break;
             }
-            if projectPath == String("") {
-                Fs.remove(tarFilename);
-            }
+            System.exec(String.format("rm -rf \"%s\"", tmpProjectPath.buf));
+            Fs.remove(tarFilename);
             Console.print(i18nOut("Deployment successful.\n"));
         }
 
@@ -608,7 +608,6 @@
         handler this.createBackup(): String {
             def downloadUrl: String = "";
             def backupName: String = "";
-            if this.apiKey == ""this.fetchApiToken();
             while 1 {
                 def request: Net.Request(String.format(
                     "%s%s?project=%s&backup_type=database", host.buf, CREATE_BACKUP_PATH,
@@ -626,7 +625,7 @@
                 } else if request.responseHttpStatus == 401 {
                     handle401Error[];
                 } else if request.responseHttpStatus == 404 {
-                    Console.print(i18nOut("project not found\n"));
+                    Console.print(i18nOut("Project not found\n"));
                     break;
                 } else if request.responseHttpStatus == 423 {
                     Console.print(i18nOut(
@@ -639,15 +638,12 @@
                     handleUnexpectedCommunicationError[];
                 }
             }
-            // some times it is asking for the status befor the insert of the backup
-            System.sleep(2000000);
             if this.isBackupReady(backupName) return downloadUrl;
 
             return String("");
         }
 
         handler this.isBackupReady(backupName: String): bool {
-            if this.apiKey == ""this.fetchApiToken();
             while 1 {
                 def request: Net.Request(String.format(
                     "%s%s?project=%s&backup=%s", host.buf, CHECK_BACKUP_STATUS,
@@ -663,18 +659,18 @@
                     def status: String = "";
                     status = Json(request.responseBody)("status");
                     if status == String("creating") {
-                        Console.print(i18nOut("backup is not created yet!\n"));
+                        Console.print(i18nOut("Backup is not created yet!\n"));
                         // for 5 sec
                         System.sleep(5000000);
                         Console.print(i18nOut("Waiting!\n"));
                     } else if status == String("creating_failed") {
-                        Console.print(i18nOut("backup creation field\n"));
+                        Console.print(i18nOut("Backup creation field\n"));
                         break;
                     } else return true;
                 } else if request.responseHttpStatus == 401 {
                     handle401Error[];
                 } else if request.responseHttpStatus == 404 {
-                    Console.print(i18nOut("project or project backup not found\n"));
+                    Console.print(i18nOut("Project or project backup not found\n"));
                     break;
                 } else {
                     handleUnexpectedCommunicationError[];
@@ -728,4 +724,3 @@
         }
     }
 }
-

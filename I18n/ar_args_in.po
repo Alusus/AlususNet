@@ -1,8 +1,0 @@
-msgid "ابدأ"
-msgstr "start"
-
-msgid "ابن"
-msgstr "build"
-
-msgid "انشر"
-msgstr "publish"

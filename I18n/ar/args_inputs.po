@@ -1,0 +1,8 @@
+msgid "انشر"
+msgstr "publish"
+
+msgid "استنسخ-البيانات"
+msgstr "backup-db"
+
+msgid "استرجع-البيانات"
+msgstr "restore-db"
