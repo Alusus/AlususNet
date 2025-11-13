@@ -8,6 +8,7 @@ import "Apm";
 Apm.importFile("Alusus/ExtendedNet");
 Apm.importFile("Alusus/Json");
 Apm.importFile("Alusus/I18n");
+Apm.importFile("Alusus/Utilib");
 import "Client";
 
 @merge module AlususNet {

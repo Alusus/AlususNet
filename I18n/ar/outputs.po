@@ -4,6 +4,9 @@ msgstr "خطأ غير متوقع في الاتصال. أترغب بإعادة ا
 msgid "\nExisting auth key is no longer valid. Requesting a new auth key.\n"
 msgstr "\nمفتاح التوثيق الحالي غير صالح. سيُطلب مفتاح جديد.\n"
 
+msgid "\nProvided API key is not valid.\n"
+msgstr "\nمفتاح التوثيق المعطى غير صالح.\n"
+
 msgid "Enter username: \n>"
 msgstr "أدخل اسم المستخدم: \n>"
 

@@ -11,16 +11,17 @@
         def CREATE_AUTH_TOKEN: "/api/login";
         def CHECK_BACKUP_STATUS: "/api/project/backup/status";
         def BATCH_SIZE: 102400;
-        def CONF_FILENAME: "/.alususnet.conf";
-        def HOST: "https://alusus.net";
+        def DEFAULT_HOST: "https://alusus.net";
+        def HOST_ENV_NAME: "ALUSUS_NET_HOST";
+        def DEFAULT_CONFIG_PATH: ".config/alususnet.conf";
+        def CONFIG_PATH_ENV_NAME: "ALUSUS_NET_CONFIG_PATH";
 
         @shared def host: String(CharsPtr().{
-            this = System.getEnv("ALUSUS_NET_HOST");
-            if this == 0 this = HOST;
+            this = System.getEnv(HOST_ENV_NAME);
+            if this == 0 this = DEFAULT_HOST;
         });
 
-        def publishProjectName: String;
-        def myWorkDir: String;
+        def projectName: String;
         def confFilePath: String;
         def products: Json;
 
@@ -35,25 +36,22 @@
         def verbose: bool = true;
 
         handler this~init(projName: String, apiKey: String, verbose: bool) {
-            this.publishProjectName = projName;
+            this.projectName = projName;
             this.verbose = verbose;
-            def fp: ptr[Fs.File] = Fs.openProcess("pwd", "r");
-            def path: array[char, 1035];
-            Fs.readLine(path~ptr, 1035, fp);
-            Fs.closeProcess(fp);
             this.apiKey = apiKey;
-            this.myWorkDir = String(path~ptr);
-            // Remove the \n from the end of the string.
-            this.myWorkDir = this.myWorkDir.slice(0, this.myWorkDir.getLength() - 1);
-            this.confFilePath = this.myWorkDir + CONF_FILENAME;
-        }
-
-        handler this_type(): SrdRef[Client] {
-            return SrdRef[Client]().{ alloc()~init(String(""), String(""), false) };
+            // If apiKey is provided, skip the config file and just depend on the provided key.
+            if this.apiKey == "" {
+                def confFilePath: CharsPtr = System.getEnv(CONFIG_PATH_ENV_NAME);
+                if confFilePath == 0 {
+                    this.confFilePath = String.format("%s/%s", System.getEnv("HOME"), DEFAULT_CONFIG_PATH);
+                } else {
+                    this.confFilePath = confFilePath;
+                }
+            }
         }
 
         handler this_type(projName: String): SrdRef[Client] {
-            return SrdRef[Client]().{ alloc()~init(projName, String(""), false) };
+            return SrdRef[Client]().{ alloc()~init(projName, String(), false) };
         }
 
         handler this_type(projName: String, myApiKey: String): SrdRef[Client] {
@@ -62,10 +60,6 @@
 
         handler this_type(projName: String, apiKey: String, verbose: bool): SrdRef[Client] {
             return SrdRef[Client]().{ alloc()~init(projName, apiKey, verbose) };
-        }
-
-        handler this.projectName: String {
-            return this.publishProjectName
         }
 
         handler this.acceptTermOFUse() {
@@ -84,10 +78,10 @@
         }
 
         handler this.publish(serverPort: int) {
-            this.publish(serverPort, String(""), String(""));
+            this.publish(serverPort, String(), String());
         }
 
-        handler this.publish(serverPort: int, projectPath: String, starter: String) {
+        handler this.publish(serverPort: Int, projectPath: String, starter: String) {
             if checkProjectName(this.projectName) {
                 this.fetchProducts();
                 this.fetchApiToken();
@@ -112,10 +106,17 @@
         }
 
         macro handle401Error {
-            Console.print(i18nOut("\nExisting auth key is no longer valid. Requesting a new auth key.\n"));
-            this.apiKey.clear();
-            this.saveConf();
-            this.fetchApiToken();
+            // If we don't have a confFilePath it means an API key was passed to us, which means
+            // we just fail if the key is invalid rather than request a new key from the user. This
+            // is to handle the case of running in CI and passing an API key.
+            if this.confFilePath != "" {
+                Console.print(i18nOut("\nExisting auth key is no longer valid. Requesting a new auth key.\n"));
+                this.apiKey.clear();
+                this.saveConf();
+                this.fetchApiToken();
+            } else {
+                System.fail(1, i18nOut("\nProvided API key is not valid.\n"));
+            }
         }
 
         handler this.fetchProducts() {
@@ -145,6 +146,9 @@
         }
 
         handler this.readConf() {
+            // Skip if no conf file is set, because it means an API key was provided and we'll
+            // just use that without dealing with the conf file.
+            if this.confFilePath == "" return;
             if Fs.exists(this.confFilePath) {
                 def data: String = Fs.readFile(this.confFilePath);
                 def json: Json(data);
@@ -168,16 +172,16 @@
         }
 
         handler this.fetchAuthToken() {
-            def userName: array[Char, 100];
-            def password: array[Char, 100];
+            def userName: array[Char, 256];
+            def password: String;
             def mfaCode: array[Char, 100];
             macro promptForUserName{
                 Console.print(i18nOut("Enter username: \n>"));
-                Console.getString(userName~ptr, 100);
+                Console.getString(userName~ptr, 256);
             }
             macro promptForPassword{
                 Console.print(i18nOut("Enter password: \n>"));
-                Console.getString(password~ptr, 100);
+                password = Utilib.Console.getStealthString();
             }
             macro promptForMfaCode{
                 Console.print(i18nOut("Enter MFA code or enter 'back' to login again: \n>"));
@@ -191,14 +195,14 @@
                     requestString = String.format(
                         "{\"username\": \"%s\" , \"password\": \"%s\" ,\"trustToken\": \"%s\"}",
                         Json.escape(String(userName~ptr).trim()).buf,
-                        Json.escape(String(password~ptr).trim()).buf,
+                        Json.escape(password.trim()).buf,
                         Json.escape(this.trustKey.trim()).buf
                     );
                 } else {
                     requestString = String.format(
                         "{\"username\": \"%s\", \"password\": \"%s\"}",
                         Json.escape(String(userName~ptr).trim()).buf,
-                        Json.escape(String(password~ptr).trim()).buf,
+                        Json.escape(password.trim()).buf,
                     );
                 }
                 def request: Net.Request(host + CREATE_AUTH_TOKEN);
@@ -206,10 +210,10 @@
                 request.post(requestString);
                 if request.responseHttpStatus == 200 {
                     this.authKey = Json(request.responseBody)("authToken");
-                    this.password = String(password~ptr);
+                    this.password = password;
                     break;
                 } else if request.responseHttpStatus == 202 {
-                    this.password = String(password~ptr);
+                    this.password = password;
                     promptForMfaCode[];
                     while 1 {
                         if i18nIn(mfaCode~ptr) == "back" break;
@@ -218,7 +222,7 @@
                         verifyMfaCodeRequest.post(String.format(
                             "{\"username\": \"%s\" , \"password\": \"%s\" , \"code\": \"%s\"}",
                             Json.escape(String(userName~ptr).trim()).buf,
-                            Json.escape(String(password~ptr).trim()).buf,
+                            Json.escape(password.trim()).buf,
                             Json.escape(String(mfaCode~ptr).trim()).buf
                         ));
                         def status: int = verifyMfaCodeRequest.responseHttpStatus;
@@ -460,9 +464,9 @@
             }
         }
 
-        handler this.uploadProject(serverPort: int, projectPath: String, starter: String) {
+        handler this.uploadProject(serverPort: Int, projectPath: String, starter: String) {
             // Generate the tar file.
-            def tmpProjectPath: String = String("/tmp/") + projectPath;
+            def tmpProjectPath: String = String("/tmp/") + this.projectName;
             def tarFilename: String = String("/tmp/") + this.projectName + String(".tar.gz");
             System.exec(String.format("rm -rf \"%s\"", tmpProjectPath.buf));
             if System.exec(String.format("cp -r \"%s\" \"%s\"", projectPath.buf, tmpProjectPath.buf)) != 0 {
