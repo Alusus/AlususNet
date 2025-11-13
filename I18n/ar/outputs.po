@@ -1,0 +1,155 @@
+msgid "Unexpected communication error! Retry? "
+msgstr "خطأ غير متوقع في الاتصال. أترغب بإعادة المحاولة؟ "
+
+msgid "\nExisting auth key is no longer valid. Requesting a new auth key.\n"
+msgstr "\nمفتاح التوثيق الحالي غير صالح. سيُطلب مفتاح جديد.\n"
+
+msgid "\nProvided API key is not valid.\n"
+msgstr "\nمفتاح التوثيق المعطى غير صالح.\n"
+
+msgid "Enter username: \n>"
+msgstr "أدخل اسم المستخدم: \n>"
+
+msgid "Enter password: \n>"
+msgstr "أدخل كلمة السر: \n>"
+
+msgid "Authentication error. Invalid username or password.\n"
+msgstr "خطأ في المصادقة. اسم المستخدم أو كلمة السر غير صالحة.\n"
+
+msgid "Authentication error.\n"
+msgstr "خطأ في المصادقة.\n"
+
+msgid "Existing project with the same name exists. The project will be overwritten. Continue (yes/no)? "
+msgstr "يوجد مشروع حالي بنفس الاسم. ستؤدي العملية لاستبداله بالنسخة الجديدة. أترغب بالاستمرار (نعم/لا)؟ "
+
+msgid "Existing, but inactive, project with the same name exists. "
+"This project is in an invalid state and cannot be re-activated. "
+"Contact AlususNet's support to resolve the issue, or change your "
+"project's name to create a new project on AlususNet.\n"
+msgstr "يوجد مشروع حالي بنفس الاسم لكنه غير مفعّل. هذا المشروع في حالة غير صالحة ولا يمكن إعادة تفعيله. "
+"اتصل بخدمة عملاء الأسس نت لحل المشكلة، أو غير اسم المشروع لإنشاء مشروع جديد على الأسس نت.\n"
+
+msgid "Existing, but inactive, project with the same name exists. "
+"The project will be re-activated and overwritten. "
+"A new payment plan will be setup.\n"
+msgstr "يوجد مشروع حالي بنفس الاسم لكنه غير مفعّل. ستؤدي العملية إلى تفعيله وتحديث شفرته "
+"وسيؤدي ذلك إلى إنشاء خطة دفع إلكتروني جديدة.\n"
+
+msgid "No existing project found with the same name. "
+"A new project will be created and a payment plan will be setup for it.\n"
+msgstr "لا يوجد مشروع بهذا الاسم. ستؤدي العملية إلى إنشاء مشروع جديد وإنشاء خطة دفع إلكتروني جديدة.\n"
+
+msgid "Some operation is currently in progress on this project's container. Retry (yes/no)? "
+msgstr "بعض العمليات تتم حاليًا في الخادم على هذا المشروع ويجب الانتظار حتى تكتمل تلك العمليات. إعادة المحاولة (نعم/لا)؟ "
+
+msgid "Continue? (Type `yes` to proceed, `no` to cancel, "
+"or `coupon` to enter a promotion code) "
+msgstr "أترغب بالاستمرار؟ (أدخل `نعم` للاستمرار أو `لا` للإلغاء أو `قسيمة` لإدخال رمزٍ ترويجي) "
+
+msgid "Continue? (Type `yes` to proceed, `no` to cancel, "
+"`plan` to change the hosting plan, "
+"or `coupon` to enter a promotion code) "
+msgstr "أترغب بالاستمرار؟ (أدخل `نعم` للاستمرار أو `لا` للإلغاء أو `مستوى` لاختيار مستوى خدمة الاستضافة"
+" أو `قسيمة` لإدخال رمزٍ ترويجي) "
+
+msgid "Enter promotion code: "
+msgstr "أدخل الرمز الترويجي: "
+
+msgid "Please setup your payment profile by visiting this URL:\n"
+"%s\nPress enter when you're done.\n"
+msgstr "يُرجى ضبط إعدادات الدفع عبر هذا الرابط:\n%s\nاضغط زر الإدخال عند الانتهاء.\n"
+
+msgid "Hosting plan:\n"
+msgstr "مستوى خدمة الاستضافة:\n"
+
+msgid "%s - %s.\nMonthly cost: $%s USD\n"
+msgstr "%s - %s.\nالكلفة الشهرية: $%s دولار أمريكي\n"
+
+msgid "Select a plan:\n"
+msgstr "اختر مستوى خدمة الاستضافة:\n"
+
+msgid "Deployment successful.\n"
+msgstr "تم النشر بنجاح.\n"
+
+msgid "Upload failed. File is too big!\n"
+msgstr "فشل التحميل. الملف أكبر من الحجم الأقصى!\n"
+
+msgid "Unexpected error. Try re-starting the deployment.\n"
+msgstr "خطأ غير متوقع. يُرجى إعادة تشغيل عملية النشر.\n"
+
+msgid "Invalid entry.\n"
+msgstr "مدخلة غير صالحة.\n"
+
+msgid "Failed to fetch product info from AlususNet\n"
+msgstr "فشل جلب بيانات المنتجات من الأسس نت\n"
+
+msgid "Project name is not valid.\n"
+msgstr "اسم المشروع غير صالح.\n"
+
+msgid "Enter promotion code or leave empty to proceed without a promotion code: "
+msgstr "أدخل رمزًا ترويجيًا أو اترك الحقل فارغًا للاستمرار بدون رمزٍ ترويجي: "
+
+msgid "Provided promotion code is invalid. Re-enter prmotion code? "
+"(Type `yes` to enter a new code or `cancel` to quit) "
+msgstr "الرمز الترويجي المدخل غير صالح. أترغب بإدخال رمز جديد؟ "
+"(أدخل `نعم` لإدخال رمز جديد أو `ألغ` للخروج) "
+
+msgid "Uploading: %d%%"
+msgstr "تحميل: %d%%"
+
+msgid "Enter MFA code or enter 'back' to login again: \n>"
+msgstr "أدخل رمز التحقق متعدد العوامل أو أدخل 'رجوع' للعودة الى تسجيل الدخول: \n>"
+
+msgid "The account is locked due to multiple incorrect password attempts. Please try again later.\n"
+msgstr "تم قفل الحساب بسبب محاولات متعددة لإدخال كلمة مرور غير صحيحة. يرجى المحاولة مرة أخرى لاحقًا.\n"
+
+msgid "Before proceeding, please read and agree to the following:\n\n"
+"Terms of Service: https://alusus.net/terms-of-service\n"
+"Privacy Policy: https://alusus.net/privacy-policy\n"
+"By using Alusus Net, you agree to the above terms of service and privacy policy.\n\n"
+"Do you accept these terms? [Y/n] "
+msgstr "قبل المتابعة، يرجى قراءة والموافقة على ما يلي:\n\n"
+"شروط الخدمة: https://alusus.net/terms-of-service\n"
+"سياسة الخصوصية: https://alusus.net/privacy-policy\n"
+"باستخدام خدمة الأسس نت فإنك توافق على شروط الخدمة وسياسة الخصوصية.\n\n"
+"هل توافق على هذه الشروط؟ "
+
+msgid "Invalid project name. It should only contain lowercase letters, numbers, "
+"hyphens (-), and must not start or end with a hyphen.\n"
+msgstr "اسم المشروع غير صالح. يجب أن يحتوي فقط على أحرف إنجليزية صغيرة وأرقام وشرطات (-) ولا يجب أن يبدأ أو ينتهي بشرطة.\n"
+
+msgid "Code is invalid!\n"
+msgstr "الرمز غير صالح!\n"
+
+msgid "Unexpected error. Try re-starting the deployment.\n"
+msgstr "خطأ غير متوقع. جرب إعادة بدء عملية النشر.\n"
+
+msgid "Upload failed. File is too big!\n"
+msgstr "فشل الرفع. الملف كبير جداً!\n"
+
+msgid "Unexpected error. Try re-uploading backup.\n"
+msgstr "خطأ غير متوقع. جرب إعادة رفع النسخة الاحتياطية.\n"
+
+msgid "Unexpected error. Try re-uploading the database.\n"
+msgstr "خطأ غير متوقع. جرب إعادة رفع قاعدة البيانات.\n"
+
+msgid "Database restored successfully.\n"
+msgstr "تم استرجاع قاعدة البيانات بنجاح.\n"
+
+msgid "Database backup downloaded successfully.\n"
+msgstr "تم تحميل نسخة قاعدة البيانات الاحتياطية بنجاح.\n"
+
+msgid "Project not found\n"
+msgstr "المشروع غير موجود\n"
+
+msgid "Backup is not created yet!\n"
+msgstr "النسخة الاحتياطية لم تُنشأ بعد!\n"
+
+msgid "Waiting!\n"
+msgstr "انتظار!\n"
+
+msgid "Backup creation field\n"
+msgstr "فشل إنشاء النسخة الاحتياطية\n"
+
+msgid "Project or project backup not found\n"
+msgstr "المشروع أو النسخة الاحتياطية للمشروع غير موجودة\n"

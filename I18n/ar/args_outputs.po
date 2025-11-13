@@ -1,0 +1,71 @@
+msgid "AlususNet\nVersion: 1.0\n\n"
+msgstr "الأسس نت\nالإصدار: 1.0\n\n"
+
+msgid "publish"
+msgstr "انشر"
+
+msgid "backup-db"
+msgstr "استنسخ-البيانات"
+
+msgid "restore-db"
+msgstr "استرجع-البيانات"
+
+msgid "build-cli"
+msgstr "ابن-الواجهة"
+
+msgid "projectName"
+msgstr "اسم_المشروع"
+
+msgid "projectPath"
+msgstr "مسار_المشروع"
+
+msgid "backupPath"
+msgstr "مسار_النسخة_الاحتياطية"
+
+msgid "port"
+msgstr "المنفذ"
+
+msgid "starter"
+msgstr "البرنامج_الرئيسي"
+
+msgid "apiToken"
+msgstr "رمز_الولوج"
+
+msgid "Publish your project to the container."
+msgstr "انشر مشروعك على الحاوية."
+
+msgid "Backup the database of the container and download the backup."
+msgstr "استنسخ قاعدة البيانات من الحاوية وحمل النسخة الاحتياطية."
+
+msgid "Upload and restore a database to the container."
+msgstr "ارفع واسترجع قاعدة البيانات إلى الحاوية."
+
+msgid "Build an executable copy of this cli tool."
+msgstr "ابن نسخة قابلة للتنفيذ من أداة واجهة الأوامر هذه."
+
+msgid "The name of the project on Alusus Net."
+msgstr "اسم المشروع على الأسس نت."
+
+msgid "Path to the project folder."
+msgstr "مسار مجلد المشروع."
+
+msgid "The HTTP port on which the app will be listening."
+msgstr "منفذ HTTP الذي سيستمع عليه التطبيق."
+
+msgid "The name of the executalbe file of the project."
+msgstr "اسم الملف التنفيذي للمشروع."
+
+msgid "Alusus Net API token. If this is not provided you'll be prompted for login."
+msgstr "رمز API للأسس نت. إذا لم يتم توفير هذا فستتم مطالبتك بتسجيل الدخول."
+
+msgid "The path to save the PostgreSQL backup file to."
+msgstr "المسار لحفظ ملف النسخة الاحتياطية لـ PostgreSQL إليه."
+
+msgid "The path to the PostgreSQL backup file to upload."
+msgstr "المسار إلى ملف النسخة الاحتياطية لـ PostgreSQL المراد رفعه."
+
+msgid "Build complete.\n"
+msgstr "اكتمل البناء.\n"
+
+msgid "Build failed."
+msgstr "فشل البناء."

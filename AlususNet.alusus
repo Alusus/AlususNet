@@ -1,0 +1,84 @@
+import "Srl/Console.alusus";
+import "Srl/System.alusus";
+import "Srl/Fs.alusus";
+import "Srl/Net.alusus";
+import "Spp";
+import "Build";
+import "Apm";
+Apm.importFile("Alusus/ExtendedNet");
+Apm.importFile("Alusus/Json");
+Apm.importFile("Alusus/I18n");
+Apm.importFile("Alusus/Utilib");
+import "Client";
+
+@merge module AlususNet {
+    use Srl;
+    use Core.Basic;
+    def i18nOut: I18n.Dictionary;
+    def i18nIn: I18n.Dictionary;
+    def localizationPath: preprocess {
+        def dummy: 1;
+        Spp.astMgr.insertAst(
+            ast { "{{name}}/I18n" },
+            Srl.Map[Srl.String, ref[Core.Basic.TiObject]]()
+                .set(Srl.String("name"), Core.Basic.TiStr(Spp.astMgr.getSourceDirectoryForElement(dummy~ast)))
+        );
+    };
+    def textAssets: I18n.TextAssets[localizationPath, "en"];
+
+    def alususNetPath: String = getThisSourceDirectory[];
+
+    func initializeTranslations(lang: String) {
+        textAssets.initialize();
+        textAssets.setCurrentLanguage(lang);
+        i18nOut.add(textAssets.current.outputs);
+        i18nIn.add(textAssets.current.inputs);
+    }
+
+    macro handleUnexpectedCommunicationError {
+        Console.print(i18nOut("Unexpected communication error! Retry? "));
+        if getUserYesNoAnswer(String()) != "yes" {
+            System.exit(1);
+        }
+    }
+
+    func getUserYesNoAnswer(prompt: String): String {
+        return getUserMultipleOptionsAnswer(prompt, Map[String, String]()
+            .set(String("yes"), String("yes"))
+            .set(String("y"), String("yes"))
+            .set(String("no"), String("no"))
+            .set(String("n"), String("no")));
+    }
+
+    func getUserMultipleOptionsAnswer(prompt: String, options: Map[String, String]): String {
+        def ret: String;
+        while 1 {
+            if prompt != ""Console.print(prompt);
+            def answer: array[Char, 100];
+            Console.getString(answer~ptr, 100);
+            ret = i18nIn(answer~ptr).toLowerCase();
+            if options.findPos(ret) ==  - 1 {
+                Console.print(i18nOut("Invalid entry.\n"));
+                continue;
+            }
+            ret = options(ret);
+            break;
+        }
+        return ret;
+    }
+
+    func getUserTextAnswer(prompt: String, allowEmpty: Bool): String {
+        def result: String;
+        while 1 {
+            if prompt != ""Console.print(prompt);
+            def answer: array[Char, 1024];
+            Console.getString(answer~ptr, 1024);
+            result = String(answer~ptr).trim();
+            if result != ""or allowEmpty break;
+            Console.print(i18nOut("Invalid entry.\n"));
+        }
+        return result;
+    }
+}
+
+AlususNet.initializeTranslations(Srl.String(1, Process.language));
