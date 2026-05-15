@@ -200,7 +200,7 @@
             }
             macro promptForPassword{
                 Console.print(i18nOut("Enter password: \n>"));
-                password = Utilib.Console.getStealthString();
+                password = Console.getStealthString();
             }
             macro promptForMfaCode{
                 Console.print(i18nOut("Enter MFA code or enter 'back' to login again: \n>"));

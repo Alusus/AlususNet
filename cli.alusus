@@ -18,8 +18,8 @@
  */
 
 import "AlususNet";
-Apm.importFile("Alusus/ProgArg");
-Apm.importFile("Alusus/Utilib");
+Apm.importPackage("Alusus/Sle@0.2", "Srl/System.alusus");
+Apm.importPackage("Alusus/ProgArg@0.2");
 
 func initializeTranslations(lang: Srl.String) {
     AlususNet.initializeTranslations(lang);
@@ -109,7 +109,7 @@ func initializeProgArg(argStartIndex: Int) {
 
 @expname[main]
 function main (argCount: Int, args: ptr[array[ptr[array[Char]]]]): Int {
-    def lang: Srl.String = Utilib.getSystemLanguage();
+    def lang: Srl.String = Srl.System.getSystemLanguage();
     // TODO: Is it acceptable design-wise to set Process variables manually here?
     Process.args = args;
     Process.argCount = argCount;

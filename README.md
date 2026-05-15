@@ -12,7 +12,7 @@ Import the library in your Alusus project:
 
 ```alusus
 import "Apm";
-Apm.importFile("Alusus/AlususNet");
+Apm.importPackage("Alusus/AlususNet@0.2");
 ```
 
 ## Library API

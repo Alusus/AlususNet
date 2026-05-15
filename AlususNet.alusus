@@ -24,10 +24,9 @@ import "Srl/Net.alusus";
 import "Spp";
 import "Build";
 import "Apm";
-Apm.importFile("Alusus/ExtendedNet");
-Apm.importFile("Alusus/Json");
-Apm.importFile("Alusus/I18n");
-Apm.importFile("Alusus/Utilib");
+Apm.importPackage("Alusus/Sle@0.2", { "Srl/Net.alusus", "Srl/Console.alusus" });
+Apm.importPackage("Alusus/Json@0.2");
+Apm.importPackage("Alusus/I18n@0.3");
 import "Client";
 
 @merge module AlususNet {
