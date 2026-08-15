@@ -4,6 +4,12 @@ msgstr "الأسس نت\nالإصدار: 1.0\n\n"
 msgid "publish"
 msgstr "انشر"
 
+msgid "plans"
+msgstr "باقات"
+
+msgid "change-plan"
+msgstr "غير-الباقة"
+
 msgid "backup-db"
 msgstr "استنسخ-البيانات"
 
@@ -22,6 +28,12 @@ msgstr "مسار_المشروع"
 msgid "backupPath"
 msgstr "مسار_النسخة_الاحتياطية"
 
+msgid "planName"
+msgstr "اسم_الباقة"
+
+msgid "promotionCode"
+msgstr "الرمز_الترويجي"
+
 msgid "port"
 msgstr "المنفذ"
 
@@ -33,6 +45,12 @@ msgstr "رمز_الولوج"
 
 msgid "Publish your project to the container."
 msgstr "انشر مشروعك على الحاوية."
+
+msgid "List the hosting plans available on Alusus Net."
+msgstr "اعرض باقات الاستضافة المتوفرة على الأسس نت."
+
+msgid "Change the hosting plan of an existing project."
+msgstr "غير باقة الاستضافة لمشروع موجود."
 
 msgid "Backup the database of the container and download the backup."
 msgstr "استنسخ قاعدة البيانات من الحاوية وحمل النسخة الاحتياطية."
@@ -57,6 +75,12 @@ msgstr "اسم الملف التنفيذي للمشروع."
 
 msgid "Alusus Net API token. If this is not provided you'll be prompted for login."
 msgstr "رمز API للأسس نت. إذا لم يتم توفير هذا فستتم مطالبتك بتسجيل الدخول."
+
+msgid "The name of the hosting plan to switch to."
+msgstr "اسم باقة الاستضافة المراد التبديل إليه."
+
+msgid "A promotion code to apply to the new plan."
+msgstr "رمز ترويجي لتطبيقه على الباقة الجديدة."
 
 msgid "The path to save the PostgreSQL backup file to."
 msgstr "المسار لحفظ ملف النسخة الاحتياطية لـ PostgreSQL إليه."

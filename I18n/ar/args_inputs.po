@@ -1,6 +1,12 @@
 msgid "انشر"
 msgstr "publish"
 
+msgid "باقات"
+msgstr "plans"
+
+msgid "غير-الباقة"
+msgstr "change-plan"
+
 msgid "استنسخ-البيانات"
 msgstr "backup-db"
 

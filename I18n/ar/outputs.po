@@ -19,8 +19,8 @@ msgstr "خطأ في المصادقة. اسم المستخدم أو كلمة ال
 msgid "Authentication error.\n"
 msgstr "خطأ في المصادقة.\n"
 
-msgid "Existing project with the same name exists. The project will be overwritten. Continue (yes/no)? "
-msgstr "يوجد مشروع حالي بنفس الاسم. ستؤدي العملية لاستبداله بالنسخة الجديدة. أترغب بالاستمرار (نعم/لا)؟ "
+msgid "Existing project with the same name exists. The project will be overwritten.\n"
+msgstr "يوجد مشروع حالي بنفس الاسم. ستؤدي العملية لاستبداله بالنسخة الجديدة.\n"
 
 msgid "Existing, but inactive, project with the same name exists. "
 "This project is in an invalid state and cannot be re-activated. "
@@ -49,7 +49,7 @@ msgstr "أترغب بالاستمرار؟ (أدخل `نعم` للاستمرار 
 msgid "Continue? (Type `yes` to proceed, `no` to cancel, "
 "`plan` to change the hosting plan, "
 "or `coupon` to enter a promotion code) "
-msgstr "أترغب بالاستمرار؟ (أدخل `نعم` للاستمرار أو `لا` للإلغاء أو `مستوى` لاختيار مستوى خدمة الاستضافة"
+msgstr "أترغب بالاستمرار؟ (أدخل `نعم` للاستمرار أو `لا` للإلغاء أو `باقة` لاختيار باقة الاستضافة"
 " أو `قسيمة` لإدخال رمزٍ ترويجي) "
 
 msgid "Enter promotion code: "
@@ -60,13 +60,29 @@ msgid "Please setup your payment profile by visiting this URL:\n"
 msgstr "يُرجى ضبط إعدادات الدفع عبر هذا الرابط:\n%s\nاضغط زر الإدخال عند الانتهاء.\n"
 
 msgid "Hosting plan:\n"
-msgstr "مستوى خدمة الاستضافة:\n"
+msgstr "باقة الاستضافة:\n"
 
-msgid "%s - %s.\nMonthly cost: $%s USD\n"
-msgstr "%s - %s.\nالكلفة الشهرية: $%s دولار أمريكي\n"
+msgid "%s - %s\n"
+"Monthly cost: $%s USD\n"
+"Memory: %i MB\n"
+"CPU: %i cores (%s allowance)\n"
+"Network egress: %i MB\n"
+"Network ingress: %i MB\n"
+"Disk read: %i MB/s\n"
+"Disk write: %i MB/s\n"
+"Disk space: %i GB\n"
+msgstr "%s - %s\n"
+"الكلفة الشهرية: $%s دولار أمريكي\n"
+"الذاكرة: %i ميجابايت\n"
+"المعالج: %i نواة (بمعدل %s)\n"
+"إخراج الشبكة: %i ميجابايت\n"
+"إدخال الشبكة: %i ميجابايت\n"
+"قراءة القرص: %i ميجابايت/ثانية\n"
+"كتابة القرص: %i ميجابايت/ثانية\n"
+"مساحة القرص: %i جيجابايت\n"
 
-msgid "Select a plan:\n"
-msgstr "اختر مستوى خدمة الاستضافة:\n"
+msgid "Enter the selected plan's number:\n"
+msgstr "أدخل رقم باقة الاستضافة المطلوبة:\n"
 
 msgid "Deployment successful.\n"
 msgstr "تم النشر بنجاح.\n"
@@ -80,8 +96,17 @@ msgstr "خطأ غير متوقع. يُرجى إعادة تشغيل عملية ا
 msgid "Invalid entry.\n"
 msgstr "مدخلة غير صالحة.\n"
 
-msgid "Failed to fetch product info from AlususNet\n"
-msgstr "فشل جلب بيانات المنتجات من الأسس نت\n"
+msgid "Failed to fetch plan info from AlususNet\n"
+msgstr "فشل جلب بيانات الباقات من الأسس نت\n"
+
+msgid "Available hosting plans:\n"
+msgstr "باقات الاستضافة المتوفرة:\n"
+
+msgid "No hosting plan found with the given name.\n"
+msgstr "لا توجد باقة استضافة بهذا الاسم.\n"
+
+msgid "Hosting plan changed successfully.\n"
+msgstr "تم تغيير باقة الاستضافة بنجاح.\n"
 
 msgid "Project name is not valid.\n"
 msgstr "اسم المشروع غير صالح.\n"
@@ -153,3 +178,12 @@ msgstr "فشل إنشاء النسخة الاحتياطية\n"
 
 msgid "Project or project backup not found\n"
 msgstr "المشروع أو النسخة الاحتياطية للمشروع غير موجودة\n"
+
+msgid "Continue (yes/no)? "
+msgstr "أترغب بالاستمرار (نعم/لا)؟ "
+
+msgid "Current hosting plan:\n"
+msgstr "باقة الاستضافة الحالية:\n"
+
+msgid "Hosting plan will be switched to:\n"
+msgstr "ستبدَّل باقة الاستضافة إلى:\n"
