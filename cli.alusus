@@ -64,6 +64,40 @@ func initializeProgArg(argStartIndex: Int) {
                 }
             },
             ProgArg.CmdDef().{
+                kwd = "plans";
+                description = "List the hosting plans available on Alusus Net.";
+                args = Map[String, String]();
+                numRequiredArgs = 0;
+                callback = closure (options: Map[String, String], args: Array[String]) {
+                    def alususNetClient: SrdRef[AlususNet.Client] = AlususNet.Client(String());
+                    alususNetClient.listPlans();
+                }
+            },
+            ProgArg.CmdDef().{
+                kwd = "change-plan";
+                description = "Change the hosting plan of an existing project.";
+                args = Map[String, String]()
+                    .set(String("projectName"), String("The name of the project on Alusus Net."))
+                    .set(String("planName"), String("The name of the hosting plan to switch to."))
+                    .set(String("promotionCode"), String("A promotion code to apply to the new plan."))
+                    .set(String("apiToken"), String(
+                        "Alusus Net API token. If this is not provided you'll be prompted for login."
+                    ));
+                numRequiredArgs = 2;
+                callback = closure (options: Map[String, String], args: Array[String]) {
+                    if (args.getLength() < 3) {
+                        def alususNetClient: SrdRef[AlususNet.Client] = AlususNet.Client(args(0));
+                        alususNetClient.changePlan(args(1), String(""));
+                    } else if (args.getLength() == 3) {
+                        def alususNetClient: SrdRef[AlususNet.Client] = AlususNet.Client(args(0));
+                        alususNetClient.changePlan(args(1), args(2));
+                    } else {
+                        def alususNetClient: SrdRef[AlususNet.Client] = AlususNet.Client(args(0), args(3));
+                        alususNetClient.changePlan(args(1), args(2));
+                    }
+                }
+            },
+            ProgArg.CmdDef().{
                 kwd = "backup-db";
                 description = "Backup the database of the container and download the backup.";
                 args = Map[String, String]()

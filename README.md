@@ -1,5 +1,7 @@
 # AlususNet
 
+[[عربي]](README.ar.md)
+
 Client library for Alusus Net platform - a hosting and deployment service for Alusus applications.
 
 ## Overview
@@ -10,7 +12,7 @@ AlususNet provides a comprehensive client library and CLI tool for deploying Alu
 
 Import the library in your Alusus project:
 
-```alusus
+```
 import "Apm";
 Apm.importPackage("Alusus/AlususNet@0.2");
 ```
@@ -25,7 +27,7 @@ The `Client` class provides programmatic access to Alusus Net services.
 
 The Client class can be instantiated in several ways:
 
-```alusus
+```
 // Basic instantiation with project name only
 def client: SrdRef[AlususNet.Client] = AlususNet.Client("my-project");
 
@@ -41,11 +43,28 @@ def client: SrdRef[AlususNet.Client] = AlususNet.Client("my-project", "api-token
 - `apiKey` (String, optional): Your Alusus Net API token. If not provided, you'll be prompted for login credentials.
 - `verbose` (bool, optional): Enable verbose HTTP request logging. Default: `false`.
 
+#### setDesiredPlan Method
+
+Pins the hosting plan `publish` should use, skipping the interactive plan prompts.
+
+```
+client.setDesiredPlan("pro-plan");
+client.publish(8080);
+```
+
+**Parameters:**
+- `planName` (String): The name of the hosting plan to use for this project.
+
+**Behavior:**
+- When set, `publish` uses this plan automatically instead of asking the user to pick one.
+- If the project already exists with a different plan, `publish` automatically switches it to the desired plan (via the same mechanism as `changePlan`) before uploading the new version.
+- Fails with an error if no plan matches the given name.
+
 #### publish Method
 
 Publishes your project to Alusus Net, making it available on the platform.
 
-```alusus
+```
 // Simple publish with server port
 client.publish(8080);
 
@@ -60,17 +79,38 @@ client.publish(8080, "/path/to/project", "my-app");
 
 **Behavior:**
 - Validates project name format
-- Fetches available hosting products
+- Fetches available hosting plans
 - Authenticates with Alusus Net (if needed)
-- Sets up project and payment plan (interactive)
+- Sets up project and payment plan (interactive, unless a plan was pinned via `setDesiredPlan`)
 - Creates and uploads a tarball of your project
 - Displays upload progress
+
+#### changePlan Method
+
+Changes the hosting plan of an existing project.
+
+```
+// Change plan by name
+client.changePlan("pro-plan");
+
+// Change plan by name with a promotion code
+client.changePlan("pro-plan", "SAVE20");
+```
+
+**Parameters:**
+- `planName` (String): The name of the hosting plan to switch to. The ID is looked up automatically from this name.
+- `promotionCode` (String, optional): A promotion code to apply to the new plan's subscription.
+
+**Behavior:**
+- Authenticates with Alusus Net
+- Fetches available hosting plans and resolves `planName` to its plan ID
+- Requests the plan change and prompts for a payment profile setup or a new promotion code if needed
 
 #### restoreDbBackup Method
 
 Uploads and restores a PostgreSQL database backup to your project's container.
 
-```alusus
+```
 client.restoreDbBackup("/path/to/backup.sql");
 ```
 
@@ -83,11 +123,23 @@ client.restoreDbBackup("/path/to/backup.sql");
 - Displays upload progress
 - Restores the database on the server
 
+#### listPlans Method
+
+Fetches and prints the list of hosting plans available on Alusus Net.
+
+```
+client.listPlans();
+```
+
+**Behavior:**
+- Fetches available hosting plans (no authentication required)
+- Prints each plan's name, description, and monthly cost
+
 #### downloadDbBackup Method
 
 Creates and downloads a backup of your project's PostgreSQL database.
 
-```alusus
+```
 client.downloadDbBackup("/path/to/save/backup.sql");
 ```
 
@@ -117,6 +169,14 @@ This creates an executable at `./Build/alusus-net`.
 
 ### CLI Commands
 
+#### plans
+
+Fetch and display the list of hosting plans available on Alusus Net.
+
+```bash
+alusus-net plans
+```
+
 #### publish
 
 Publish your project to the Alusus Net platform.
@@ -135,6 +195,25 @@ alusus-net publish <projectName> <projectPath> <port> [starter] [apiToken]
 **Example:**
 ```bash
 alusus-net publish my-app ./my-project 8080 server
+```
+
+#### change-plan
+
+Change the hosting plan of an existing project.
+
+```bash
+alusus-net change-plan <projectName> <planName> [promotionCode] [apiToken]
+```
+
+**Arguments:**
+- `projectName`: The name of the project on Alusus Net
+- `planName`: The name of the hosting plan to switch to (the tool looks up its ID automatically)
+- `promotionCode` (optional): A promotion code to apply to the new plan
+- `apiToken` (optional): Alusus Net API token. If not provided, you'll be prompted for login
+
+**Example:**
+```bash
+alusus-net change-plan my-app pro-plan
 ```
 
 #### backup-db

@@ -19,13 +19,14 @@
 
 @merge module AlususNet {
     class Client {
-        def GET_PRODUCTS: "/api/products";
+        def GET_PLANS: "/api/plans";
         def CREATE_API_TOKEN_PATH: "/api/token";
         def GET_PROJECT_STATUS_PATH: "/api/project/setup-status";
         def SETUP_PROJECT_PATH: "/api/project/setup";
         def UPLOAD_PROJECT_PATH: "/api/project/upload";
         def UPLOAD_BACKUP_PATH: "/api/project/backup/upload";
         def CREATE_BACKUP_PATH: "/api/project/backup";
+        def CHANGE_PLAN_PATH: "/api/project/change-plan";
         def CREATE_AUTH_TOKEN_MFA: "/api/user/verify-mfa";
         def CREATE_AUTH_TOKEN: "/api/login";
         def CHECK_BACKUP_STATUS: "/api/project/backup/status";
@@ -42,7 +43,7 @@
 
         def projectName: String;
         def confFilePath: String;
-        def products: Json;
+        def plans: Json;
 
         def userName: String;
         def password: String;
@@ -53,6 +54,7 @@
         def termOfUseAccepted: Bool = false;
         def invalidCodeCounter: Int = 3;
         def verbose: bool = true;
+        def desiredPlanName: String;
 
         handler this~init(projName: String, apiKey: String, verbose: bool) {
             this.projectName = projName;
@@ -96,13 +98,17 @@
             }
         }
 
+        handler this.setDesiredPlan(planName: String) {
+            this.desiredPlanName = planName;
+        }
+
         handler this.publish(serverPort: int) {
             this.publish(serverPort, String(), String());
         }
 
         handler this.publish(serverPort: Int, projectPath: String, starter: String) {
             if checkProjectName(this.projectName) {
-                this.fetchProducts();
+                this.fetchPlans();
                 this.fetchApiToken();
                 this.setupProject();
                 this.uploadProject(serverPort, projectPath, starter);
@@ -124,6 +130,91 @@
             this.downloadBackup(backup_db_path);
         }
 
+        handler this.listPlans() {
+            this.fetchPlans();
+            Console.print(i18nOut("Available hosting plans:\n"));
+            def i: Int;
+            for i = 0, i < this.plans.getLength(), ++i {
+                Console.print("\n");
+                Console.print(getPlanInfoString(this.plans(i)));
+            }
+        }
+
+        handler this.changePlan(planName: String) {
+            this.changePlan(planName, String());
+        }
+
+        handler this.changePlan(planName: String, promotionCode: String) {
+            this.fetchApiToken();
+            this.fetchPlans();
+            def plan: Json = this.findPlanByName(planName);
+            if plan.getLength() == 0 {
+                System.fail(1, i18nOut("No hosting plan found with the given name.\n"));
+            }
+            this.changePlanById(plan("id"), promotionCode);
+            Console.print(i18nOut("Hosting plan changed successfully.\n"));
+        }
+
+        handler this.changePlanById(planId: String, promotionCode: String) {
+            while 1 {
+                def request: Net.Request(host + CHANGE_PLAN_PATH);
+                request.verbose = this.verbose;
+                request.authType = "Bearer";
+                request.authKey = this.apiKey;
+                request.contentType = "application/json";
+                request.post(String.format(
+                    "{\"projectName\": \"%s\", \"planId\": \"%s\", \"promotionCode\": \"%s\"}",
+                    Json.escape(this.projectName).buf,
+                    Json.escape(planId).buf,
+                    Json.escape(promotionCode).buf
+                ));
+                if request.responseHttpStatus == 200 {
+                    break;
+                } else if request.responseHttpStatus == 402 {
+                    Console.print(
+                        i18nOut(
+                            "Please setup your payment profile by visiting this URL:\n"
+                            "%s\nPress enter when you're done.\n"
+                        ),
+                        request.responseBody.buf
+                    );
+                    Console.getChar();
+                } else if request.responseHttpStatus == 400 and request.responseBody == "promotion_code" {
+                    def answer: String = getUserMultipleOptionsAnswer(
+                        i18nOut(
+                            "Provided promotion code is invalid. Re-enter prmotion code? "
+                            "(Type `yes` to enter a new code or `cancel` to quit) "
+                        ),
+                        Map[String, String]()
+                            .set(String("yes"), String("yes"))
+                            .set(String("y"), String("yes"))
+                            .set(String("cancel"), String("cancel"))
+                            .set(String("c"), String("cancel"))
+                    );
+                    if answer == "yes" {
+                        promotionCode = getUserTextAnswer(i18nOut(
+                            "Enter promotion code or leave empty to proceed without a promotion code: "
+                        ), true);
+                    } else if answer == "cancel" {
+                        System.exit(1);
+                    }
+                } else if request.responseHttpStatus == 404 {
+                    System.fail(1, i18nOut("Project not found\n"));
+                } else if request.responseHttpStatus == 401 {
+                    handle401Error[];
+                } else if request.responseHttpStatus == 423 {
+                    Console.print(i18nOut(
+                        "Some operation is currently in progress on this project's container. Retry (yes/no)? "
+                    ));
+                    if getUserYesNoAnswer(String()) != "yes" {
+                        System.exit(1);
+                    }
+                } else {
+                    handleUnexpectedCommunicationError[];
+                }
+            }
+        }
+
         macro handle401Error {
             // If we don't have a confFilePath it means an API key was passed to us, which means
             // we just fail if the key is invalid rather than request a new key from the user. This
@@ -138,15 +229,15 @@
             }
         }
 
-        handler this.fetchProducts() {
+        handler this.fetchPlans() {
             while 1 {
-                def request: Net.Request(String.format("%s%s", host.buf, GET_PRODUCTS));
+                def request: Net.Request(String.format("%s%s", host.buf, GET_PLANS));
                 request.verbose = this.verbose;
                 request.get();
                 if request.responseHttpStatus == 200 {
-                    this.products = request.responseBody;
-                    if this.products.getLength() < 1 {
-                        System.fail(1, i18nOut("Failed to fetch product info from AlususNet\n"));
+                    this.plans = request.responseBody;
+                    if this.plans.getLength() < 1 {
+                        System.fail(1, i18nOut("Failed to fetch plan info from AlususNet\n"));
                     }
                     break;
                 } else {
@@ -155,11 +246,23 @@
             }
         }
 
-        handler this.findProduct(productId: String): Json {
+        handler this.findPlan(planId: String): Json {
             def i: Int;
-            for i = 0, i < this.products.getLength(), ++i {
-                def product: Json = this.products(i);
-                if product("id")~cast[String] == productId return product;
+            for i = 0, i < this.plans.getLength(), ++i {
+                def plan: Json = this.plans(i);
+                if plan("id")~cast[String] == planId return plan;
+            }
+            return Json();
+        }
+
+        handler this.findPlanByName(planName: String): Json {
+            def i: Int;
+            for i = 0, i < this.plans.getLength(), ++i {
+                def plan: Json = this.plans(i);
+                if plan("name")~cast[String] == planName
+                or getLocalizedText(plan("nameLocalizations"), plan("name")) == planName {
+                    return plan;
+                }
             }
             return Json();
         }
@@ -315,9 +418,15 @@
         }
 
         handler this.setupProject() {
+            def desiredPlan: Json;
+            if this.desiredPlanName != "" {
+                desiredPlan = this.findPlanByName(this.desiredPlanName);
+                if desiredPlan.getLength() == 0 {
+                    System.fail(1, i18nOut("No hosting plan found with the given name.\n"));
+                }
+            }
             def status: String;
-            def productId: String;
-            def promotionCode: String;
+            def planId: String;
             while 1 {
                 def request: Net.Request(String.format(
                     "%s%s?project=%s", host.buf, GET_PROJECT_STATUS_PATH, Net.uriEncode(this.projectName).buf
@@ -329,7 +438,7 @@
                 if request.responseHttpStatus == 200 {
                     request.responseBody.split("&").{
                         status = this(0);
-                        productId = this(1).split("=")(1);
+                        planId = this(1).split("=")(1);
                     };
                     break;
                 } else if request.responseHttpStatus == 400 {
@@ -341,29 +450,84 @@
                 }
             }
             if status == "active" {
-                Console.print(i18nOut(
-                    "Existing project with the same name exists. The project will be overwritten. Continue (yes/no)? "
-                ));
-                if getUserYesNoAnswer(String()) != "yes" {
-                    System.exit(1);
-                }
+                this.setupActiveProject(desiredPlan, planId);
             } else if status == "inactive" {
-                def product: Json = this.findProduct(productId);
-                if product.getLength() == 0 {
-                    System.fail(1, i18nOut(
-                        "Existing, but inactive, project with the same name exists. "
-                        "This project is in an invalid state and cannot be re-activated. "
-                        "Contact AlususNet's support to resolve the issue, or change your "
-                        "project's name to create a new project on AlususNet.\n"
-                    ));
+                this.setupInactiveProject(desiredPlan, planId);
+            } else {
+                this.setupNewProject(desiredPlan);
+            }
+        }
+
+        handler this.setupNewProject(desiredPlan: Json) {
+            def plan: Json;
+            if this.desiredPlanName != "" {
+                plan = desiredPlan;
+            } else {
+                plan = this.plans(0);
+            }
+            def planId: String = plan("id");
+            Console.print(i18nOut(
+                "No existing project found with the same name. "
+                "A new project will be created and a payment plan will be setup for it.\n"
+            ));
+            Console.print("\n");
+            Console.print(i18nOut("Hosting plan:\n"));
+            Console.print(getPlanInfoString(plan));
+            Console.print("\n");
+            def options: Map[String, String]() = Map[String, String]()
+                .set(String("yes"), String("yes"))
+                .set(String("y"), String("yes"))
+                .set(String("no"), String("no"))
+                .set(String("n"), String("no"))
+                .set(String("coupon"), String("coupon"))
+                .set(String("c"), String("coupon"));
+            def prompt: String;
+            if this.desiredPlanName == "" and this.plans.getLength() > 1 {
+                prompt = i18nOut(
+                    "Continue? (Type `yes` to proceed, `no` to cancel, "
+                    "`plan` to change the hosting plan, "
+                    "or `coupon` to enter a promotion code) "
+                );
+                options
+                    .set(String("plan"), String("plan"))
+                    .set(String("p"), String("plan"))
+            } else {
+                prompt = i18nOut(
+                    "Continue? (Type `yes` to proceed, `no` to cancel, "
+                    "or `coupon` to enter a promotion code) "
+                );
+            }
+            def promotionCode: String;
+            while 1 {
+                def answer: String = getUserMultipleOptionsAnswer(prompt, options);
+                if answer == "yes" {
+                    break;
+                } else if answer == "no" {
+                    System.exit(1);
+                } else if answer == "plan" {
+                    planId = this.selectPlan();
+                } else if answer == "coupon" {
+                    promotionCode = getUserTextAnswer(i18nOut("Enter promotion code: "), true);
                 }
-                Console.print(i18nOut(
-                    "Existing, but inactive, project with the same name exists. "
-                    "The project will be re-activated and overwritten. "
-                    "A new payment plan will be setup.\n"
-                ));
-                Console.print(i18nOut("Hosting plan:\n"));
-                Console.print(getProductInfoString(product));
+            }
+            if this.termOfUseAccepted == false this.acceptTermOFUse();
+            this.performProjectSetup(planId, promotionCode);
+        }
+
+        handler this.setupActiveProject(desiredPlan: Json, planId: String) {
+            def plan: Json = this.findPlan(planId);
+            Console.print(i18nOut(
+                "Existing project with the same name exists. The project will be overwritten.\n"
+            ));
+            def promotionCode: String;
+            if this.desiredPlanName != "" and desiredPlan("id")~cast[String] != planId {
+                Console.print("\n");
+                Console.print(i18nOut("Current hosting plan:\n"));
+                Console.print(getPlanInfoString(plan));
+                Console.print("\n");
+                Console.print(i18nOut("Hosting plan will be switched to:\n"));
+                Console.print(getPlanInfoString(desiredPlan));
+                Console.print("\n");
                 while 1 {
                     def answer: String = getUserMultipleOptionsAnswer(
                         i18nOut(
@@ -386,59 +550,80 @@
                         promotionCode = getUserTextAnswer(i18nOut("Enter promotion code: "), true);
                     }
                 }
-                if this.termOfUseAccepted == false this.acceptTermOFUse();
+                this.changePlanById(desiredPlan("id"), promotionCode);
             } else {
-                def product: Json = this.products(0);
-                productId = product("id");
                 Console.print(i18nOut(
-                    "No existing project found with the same name. "
-                    "A new project will be created and a payment plan will be setup for it.\n"
+                    "Continue (yes/no)? "
                 ));
-                Console.print(i18nOut("Hosting plan:\n"));
-                Console.print(getProductInfoString(product));
-                def options: Map[String, String]() = Map[String, String]()
-                    .set(String("yes"), String("yes"))
-                    .set(String("y"), String("yes"))
-                    .set(String("no"), String("no"))
-                    .set(String("n"), String("no"))
-                    .set(String("coupon"), String("coupon"))
-                    .set(String("c"), String("coupon"));
-                def prompt: String;
-                if this.products.getLength() > 1 {
-                    prompt = i18nOut(
-                        "Continue? (Type `yes` to proceed, `no` to cancel, "
-                        "`plan` to change the hosting plan, "
-                        "or `coupon` to enter a promotion code) "
-                    );
-                    options
-                        .set(String("plan"), String("plan"))
-                        .set(String("p"), String("plan"))
-                } else {
-                    prompt = i18nOut(
-                        "Continue? (Type `yes` to proceed, `no` to cancel, "
-                        "or `coupon` to enter a promotion code) "
-                    );
+                if getUserYesNoAnswer(String()) != "yes" {
+                    System.exit(1);
                 }
-                while 1 {
-                    def answer: String = getUserMultipleOptionsAnswer(prompt, options);
-                    if answer == "yes" {
-                        break;
-                    } else if answer == "no" {
-                        System.exit(1);
-                    } else if answer == "plan" {
-                        productId = this.selectProduct();
-                    } else if answer == "coupon" {
-                        promotionCode = getUserTextAnswer(i18nOut("Enter promotion code: "), true);
-                    }
-                }
-                if this.termOfUseAccepted == false this.acceptTermOFUse();
             }
+        }
+
+        handler this.setupInactiveProject(desiredPlan: Json, planId: String) {
+            def plan: Json = this.findPlan(planId);
+            if this.desiredPlanName == "" and plan.getLength() == 0 {
+                // TODO: Give the user the option to select a valid plan instead of just failing
+                System.fail(1, i18nOut(
+                    "Existing, but inactive, project with the same name exists. "
+                    "This project is in an invalid state and cannot be re-activated. "
+                    "Contact AlususNet's support to resolve the issue, or change your "
+                    "project's name to create a new project on AlususNet.\n"
+                ));
+            }
+            Console.print(i18nOut(
+                "Existing, but inactive, project with the same name exists. "
+                "The project will be re-activated and overwritten. "
+                "A new payment plan will be setup.\n"
+            ));
+            Console.print("\n");
+            Console.print(i18nOut("Current hosting plan:\n"));
+            Console.print(getPlanInfoString(plan));
+            Console.print("\n");
+            if this.desiredPlanName != "" and desiredPlan("id")~cast[String] != planId {
+                Console.print(i18nOut("Hosting plan will be switched to:\n"));
+                Console.print(getPlanInfoString(desiredPlan));
+                Console.print("\n");
+            }
+            def promotionCode: String;
+            while 1 {
+                def answer: String = getUserMultipleOptionsAnswer(
+                    i18nOut(
+                        "Continue? (Type `yes` to proceed, `no` to cancel, "
+                        "or `coupon` to enter a promotion code) "
+                    ),
+                    Map[String, String]()
+                        .set(String("yes"), String("yes"))
+                        .set(String("y"), String("yes"))
+                        .set(String("no"), String("no"))
+                        .set(String("n"), String("no"))
+                        .set(String("coupon"), String("coupon"))
+                        .set(String("c"), String("coupon"))
+                );
+                if answer == "yes" {
+                    break;
+                } else if answer == "no" {
+                    System.exit(1);
+                } else if answer == "coupon" {
+                    promotionCode = getUserTextAnswer(i18nOut("Enter promotion code: "), true);
+                }
+            }
+            if this.termOfUseAccepted == false this.acceptTermOFUse();
+            if this.desiredPlanName != "" and desiredPlan("id")~cast[String] != planId {
+                this.changePlanById(desiredPlan("id"), promotionCode);
+            } else {
+                this.performProjectSetup(planId, promotionCode);
+            }
+        }
+
+        handler this.performProjectSetup(planId: String, promotionCode: String) {
             while 1 {
                 def request: Net.Request(String.format(
-                    "%s%s?project=%s&product=%s&promotion_code=%s",
+                    "%s%s?project=%s&plan=%s&promotion_code=%s",
                     host.buf, SETUP_PROJECT_PATH,
                     Net.uriEncode(this.projectName).buf,
-                    Net.uriEncode(productId).buf,
+                    Net.uriEncode(planId).buf,
                     Net.uriEncode(promotionCode).buf
                 ));
                 request.verbose = this.verbose;
@@ -702,30 +887,66 @@
             return false;
         }
 
-        handler this.selectProduct(): String {
-            Console.print(i18nOut("Select a plan:\n"));
+        handler this.selectPlan(): String {
             def i: Int;
             def options: Map[String, String];
-            for i = 0, i < this.products.getLength(), ++i {
+            for i = 0, i < this.plans.getLength(), ++i {
                 Console.print(
-                    "%s%d%s: %s",
+                    "\n%s%d%s: %s",
                     Console.Style.FG_GREEN, i + 1, Console.Style.RESET,
-                    getProductInfoString(this.products(i)).buf
+                    getPlanInfoString(this.plans(i)).buf
                 );
                 def num: String = String() + (i + 1);
                 options.set(num, num);
             }
+            Console.print("\n");
+            Console.print(i18nOut("Enter the selected plan's number:\n"));
             def answer: String = getUserMultipleOptionsAnswer(String(), options);
-            return this.products(String.parseInt(answer) - 1)("id");
+            return this.plans(String.parseInt(answer) - 1)("id");
         }
 
-        func getProductInfoString(product: Json): String {
+        func getPlanInfoString(plan: Json): String {
             return String.format(
-                i18nOut("%s - %s.\nMonthly cost: $%s USD\n"),
-                product("name")~cast[CharsPtr],
-                product("description")~cast[CharsPtr],
-                formatPrice(product("price")).buf
+                i18nOut(
+                    "%s - %s\n"
+                    "Monthly cost: $%s USD\n"
+                    "Memory: %i MB\n"
+                    "CPU: %i cores (%s allowance)\n"
+                    "Network egress: %i MB\n"
+                    "Network ingress: %i MB\n"
+                    "Disk read: %i MB/s\n"
+                    "Disk write: %i MB/s\n"
+                    "Disk space: %i GB\n"
+                ),
+                getLocalizedText(plan("nameLocalizations"), plan("name")).buf,
+                getLocalizedText(plan("descriptionLocalizations"), plan("description")).buf,
+                formatPrice(plan("price")).buf,
+                plan("memoryLimitMb")~cast[Int],
+                plan("cpuLimit")~cast[Int],
+                plan("cpuAllowanceLimit")~cast[String].buf,
+                plan("networkEgressLimitMb")~cast[Int],
+                plan("networkIngressLimitMb")~cast[Int],
+                plan("diskReadLimitMb")~cast[Int],
+                plan("diskWriteLimitMb")~cast[Int],
+                plan("diskSpaceLimitGb")~cast[Int]
             );
+        }
+
+        // Localizations are formatted as one "<langCode>:<text>" entry per line.
+        func getLocalizedText(localizations: String, defaultText: String): String {
+            if localizations.trim() == "" return defaultText;
+            def lines: Array[String] = localizations.split("\n");
+            def i: Int;
+            for i = 0, i < lines.getLength(), ++i {
+                def line: String = lines(i).trim();
+                if line == "" continue;
+                def sepPos: ArchInt = line.find(':');
+                if sepPos == -1 continue;
+                if line.slice(0, sepPos).trim() == textAssets.currentLanguage {
+                    return line.slice(sepPos + 1, line.getLength() - sepPos - 1).trim();
+                }
+            }
+            return String(defaultText);
         }
 
         func formatPrice(f: Float): String {

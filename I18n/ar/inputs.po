@@ -10,7 +10,7 @@ msgstr "cancel"
 msgid "قسيمة"
 msgstr "coupon"
 
-msgid "مستوى"
+msgid "باقة"
 msgstr "plan"
 
 msgid "رجوع"
