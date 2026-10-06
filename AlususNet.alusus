@@ -24,22 +24,21 @@ import "Srl/Net.alusus";
 import "Spp";
 import "Build";
 import "Apm";
-Apm.importPackage("Alusus/Sle@0.2", { "Srl/Net.alusus", "Srl/Console.alusus" });
-Apm.importPackage("Alusus/Json@0.2");
-Apm.importPackage("Alusus/I18n@0.3");
+Apm.importPackage("Alusus/Sle@0.3", { "Srl/Net.alusus", "Srl/Console.alusus" });
+Apm.importPackage("Alusus/Json@0.3");
+Apm.importPackage("Alusus/I18n@0.4");
 import "Client";
 
 @merge module AlususNet {
     use Srl;
-    use Core.Basic;
     def i18nOut: I18n.Dictionary;
     def i18nIn: I18n.Dictionary;
     def localizationPath: preprocess {
         def dummy: 1;
         Spp.astMgr.insertAst(
             ast { "{{name}}/I18n" },
-            Srl.Map[Srl.String, ref[Core.Basic.TiObject]]()
-                .set(Srl.String("name"), Core.Basic.TiStr(Spp.astMgr.getSourceDirectoryForElement(dummy~ast)))
+            Srl.Map[Srl.String, ref[Core.Ast.Node]]()
+                .set(Srl.String("name"), Core.Ast.StringLiteral(Spp.astMgr.getSourceDirectoryForElement(dummy~ast)))
         );
     };
     def textAssets: I18n.TextAssets[localizationPath, "en"];

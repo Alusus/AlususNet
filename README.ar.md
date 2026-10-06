@@ -18,7 +18,7 @@
 
 ```
 import "Apm";
-Apm.importPackage("Alusus/AlususNet@0.2");
+Apm.importPackage("Alusus/AlususNet@0.3");
 ```
 
 </div>

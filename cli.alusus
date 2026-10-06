@@ -18,8 +18,8 @@
  */
 
 import "AlususNet";
-Apm.importPackage("Alusus/Sle@0.2", "Srl/System.alusus");
-Apm.importPackage("Alusus/ProgArg@0.2");
+Apm.importPackage("Alusus/Sle@0.3", "Srl/System.alusus");
+Apm.importPackage("Alusus/ProgArg@0.3");
 
 func initializeTranslations(lang: Srl.String) {
     AlususNet.initializeTranslations(lang);
